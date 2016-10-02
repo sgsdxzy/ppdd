@@ -60,8 +60,8 @@ def main():
         ax1.set_title('Raw data')
         im1 = ax1.pcolormesh(rawdata)
         rect1 = patches.Rectangle((0, 400), 800, 200,linewidth=2, edgecolor='r', facecolor='none')
-        ax1.set_xlim(0,rawdata.shape[1])
-        ax1.set_ylim(0,rawdata.shape[0])
+        ax1.set_xlim(0, rawdata.shape[1])
+        ax1.set_ylim(0, 800)
         ax1.add_patch(rect1)
 
         ax2.set_title('Phase spectrum')

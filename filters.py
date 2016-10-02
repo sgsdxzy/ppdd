@@ -8,10 +8,10 @@ def filt_move(xy2d, fx, fy, xband=0.01, yband=0.1):
     """
     length_x = xy2d.shape[1]
     length_y = xy2d.shape[0]
-    x_filter_length = (length_x/3+1)/2*2-1
-    y_filter_length = (length_y/3+1)/2*2-1
+    x_filter_length = (length_x/3+1)/2*2-1      #must be odd
+    y_filter_length = (length_y/3+1)/2*2-1      #must be odd
     #Filter on x direction
-    b = signal.firwin(x_filter_length, cutoff=[fx*2-xband,fx*2+xband], window=('kaiser',8), pass_zero=False)
+    b = signal.firwin(x_filter_length, cutoff=[fx*2-xband, fx*2+xband], window=('kaiser',8), pass_zero=False)
     a = np.zeros([x_filter_length])
     a[0] = 1
     xy2df = signal.filtfilt(b, a, xy2d)
