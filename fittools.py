@@ -1,5 +1,6 @@
 import numpy as np
-import scipy
+from scipy.optimize import curve_fit, brentq
+from scipy.interpolate import interp1d
 
 class Guess(object):
     """
@@ -15,41 +16,135 @@ class Guess(object):
         self.fx = fx
         self.fy = fy
 
-def gaussian_peak(x, a, x0, sigma, offset):
+def gaussian(x, a, mu, sigma, c):
     """
-    The fitting function of gaussian peak.
-    """
-    x0 = float(x0)
-    g = a*np.exp((-(x-x0)**2)/(2*sigma**2)) + offset
-    return g
+    Gaussian function
 
-def gaussian_fit(stripe, guess_center, guess_sigma):   
+    :math:`f(x)=a e^{-(x - \mu)^2 / (2 \\sigma^2)} + c`
+
+    ref: https://en.wikipedia.org/wiki/Gaussian_function
+
+    Parameters
+    ----------
+    x : 1D np.array
+        coordinate
+
+    a : float
+        the height of the curve's peak
+
+    mu : float
+        the position of the center of the peak
+
+    sigma : float
+        the standard deviation, sometimes called the Gaussian RMS width
+
+    c : float
+        non-zero background
+
+    Returns
+    -------
+    out : 1D np.array
+        the Gaussian profile
     """
-    Fit the gaussian peak.
+    return a * np.exp(-((x - mu) ** 2) / 2 / sigma ** 2) + c
+
+def guss_gaussian(x):
     """
-    initial_guess = (np.max(stripe), guess_center, guess_sigma, 0)     
-    x = np.arange(stripe.shape[0])   
+    Find a set of better starting parameters for Gaussian function fitting
+
+    Parameters
+    ----------
+    x : 1D np.array
+        1D profile of your data
+
+    Returns
+    -------
+    out : tuple of float
+        estimated value of (a, mu, sigma, c)
+    """
+    c_guess = (x[0] + x[-1]) / 2
+    a_guess = x.max() - c_guess
+    mu_guess = x.argmax()
+    x_inter = interp1d(range(len(x)), x)
+
+    def _(i):
+        return x_inter(i) - a_guess / 2 - c_guess
+
     try:
-        popt,_ = scipy.optimize.curve_fit(gaussian_peak, x, stripe, p0=initial_guess)
-    except RuntimeError:
-        return
-    return popt
+        sigma_l_guess = brentq(_, 0, mu_guess)
+    except:
+        sigma_l_guess = len(x) / 4
+    try:
+        sigma_r_guess = brentq(_, mu_guess, len(x) - 1)
+    except:
+        sigma_r_guess = 3 * len(x) / 4
+    return a_guess, mu_guess, (sigma_r_guess -
+                               sigma_l_guess) / 2.35482, c_guess
 
-def find_center_by_column_fit(phase, guess_center, guess_sigma):
+def fit_gaussian(x, xmin, xmax):
     """
-    Find the center of unwrapped phase spectrum in the y direction.
+    Fit a Gaussian function to x and return its parameters, with mu in [xmin, xmax]
+
+    Parameters
+    ----------
+    x : 1D np.array
+        1D profile of your data
+
+    Returns
+    -------
+    out : tuple of float
+        (a, mu, sigma, c)
     """
-    fit_results = np.apply_along_axis(gaussian_fit, 0, phase, guess_center, guess_sigma)
-    fit_results = result[:,(~np.isnan(result).any(0))]
-    length = fit_results.shape[1]
-    mask_a = np.argsort(fit_results[0])[int(0.5*length):int(0.8*length)]        #only use columns with a values in 50%-80%
-    mask_x0 = np.argsort(fit_results[1])[int(0.2*length):int(0.8*length)]
-    mask_sigma = np.argsort(fit_results[2])[int(0.2*length):int(0.8*length)]
-    mask = np.intersect1d(np.intersect1d(mask_a, mask_x0, assume_unique=True), mask_sigma, assume_unique=True)      #only use these columns
-    centers = fit_results[1,mask]
-    mean = np.mean(centers)
-    std = np.std(centers)
-    return np.mean(centers[np.abs(centers-mean)<3*std])
+    p, q = curve_fit(gaussian, list(range(x.size)), x, p0=guss_gaussian(x), bounds=([-np.inf, xmin, -np.inf, -np.inf], [np.inf, xmax, np.inf, np.inf]))
+    return p
+
+def find_center_by_gaussian_fit(IM, ymin, ymax):
+    """
+    Find image center by fitting the summation along x and y axis of the data to two 1D Gaussian function
+    """
+    y = np.sum(IM, axis=1)
+    return fit_gaussian(y, ymin, ymax)[1]
+
+def find_center_by_convolution(IM, ymin, ymax):
+    """ Center the image by convolution of two projections along each axis.
+        code from the ``linbasex`` juptyer notebook
+    Parameter
+    -------
+    IM: numpy 2D array
+        image data
+    Returns
+    -------
+        y-center
+    """
+    # projection along axis=0 of image (rows)
+    QL_raw0 = IM.sum(axis=1)
+
+    # autocorrelate projections
+    conv_0 = np.convolve(QL_raw0, QL_raw0, mode='full')
+
+    #Take the first max, should there be several equal maxima.
+    # 10May16 - axes swapped - check this
+    return np.argmax(conv_0[ymin*2:ymax*2])/2 + ymin
+
+def find_symmetry_axis(phase, ymin, ymax):
+    """
+    Find symmetry axis of phase spectrum in range [ymin, ymax]. It will try different methods in the following order:
+    find_center_by_gaussian_fit
+    find_center_by_convolution
+    If none of the methods could find a valid symmetry axis, a RuntimeError will be raised.
+
+    Return the y index of the symmetry axis.
+    """
+    try :
+        center = find_center_by_gaussian_fit(phase, ymin, ymax)
+        return center
+    except (RuntimeError, ValueError) :
+        #find_center_by_gaussian_fit failed, just pass to use next method
+        pass
+    
+    #find_center_by_convolution always succeeds
+    center = find_center_by_convolution(phase, ymin, ymax)
+    return center
 
 def three_peaks((x, y), a0, x0, y0, sigma_x0, sigma_y0, a1, x1, y1, sigma_x1, sigma_y1, offset):
     """
@@ -86,7 +181,7 @@ def find_peaks(xy2d, guess):
     offset = guess.offset_ratio*a0 
     initial_guess = (a0, x0, y0, guess.sigma_x0, guess.sigma_y0, a1, x1, y1, guess.sigma_x1, guess.sigma_y1, offset)     
     x, y = np.meshgrid(np.arange(length_x), np.arange(length_y))       
-    popt,_ = scipy.optimize.curve_fit(three_peaks, (x, y), XYf2d_shifted.ravel(), p0=initial_guess)
+    popt,_ = curve_fit(three_peaks, (x, y), XYf2d_shifted.ravel(), p0=initial_guess)
     
     fx = (popt[6]-popt[1])*dXf
     fy = (popt[7]-popt[2])*dYf

@@ -3,7 +3,6 @@ from __future__ import print_function
 import sys
 import os
 import numpy as np
-import scipy
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import abel
@@ -19,7 +18,7 @@ def main():
     #Read Data
     for filename in sys.argv[1:]:
         rawdata = np.loadtxt(filename, dtype=int)
-        xy2d=rawdata[400:600,300:800] #TODO region
+        xy2d=rawdata[400:600,0:800] #TODO region
         #Fit three peaks to find the secondary peak
         try :
             fx, fy = fittools.find_peaks(xy2d, guess)
@@ -32,23 +31,25 @@ def main():
 
         #Find the center of phase spectrum
         try :
-            ycenter, _ = abel.tools.center.find_center(phase, center='gaussian')
-        except RuntimeError :
+            ymin = 50
+            ymax = 150
+            ycenter = fittools.find_symmetry_axis(phase, ymin, ymax) #TODO ymin and ymax
+        except RuntimeError :       #currently not possible because find_symmetry_axis always give a center in [ymin, ymax]
             failed_symmetries.append(filename)
             continue
 
         IM = abel.tools.center.center_image(phase.transpose(), center=(phase.shape[1]/2-1, ycenter), odd_size=True, crop='valid_region')
         Q0, _, _, Q3 = abel.tools.symmetry.get_image_quadrants(IM, symmetry_axis=0, symmetrize_method='average')
-        Q = np.concatenate((Q0,Q3[::-1]),axis=0)[:,:] #TODO region
+        Q = np.concatenate((Q0,Q3[::-1]),axis=0)[:,:50] #TODO region
 
         #Abel transform         #TODO method selection
         try :
             AIM = abel.hansenlaw.hansenlaw_transform(Q, direction="inverse")
-        except ValueError :
+            #AIM = abel.onion_bordas.onion_bordas_transform(Q, direction="inverse")
+            #AIM = abel.basex.basex_transform(Q, nbf='auto', basis_dir='/home/clapa/.cache/abel', dr=1.0, verbose=True, direction='inverse')
+        except ValueError :     #given invalid symmetry axis
             failed_symmetries.append(filename)
             continue
-        #AIM = abel.onion_bordas.onion_bordas_transform(Q, direction="inverse")
-        #AIM = abel.basex.basex_transform(Q, nbf='auto', basis_dir='/home/clapa/.cache/abel', dr=1.0, verbose=True, direction='inverse')
 
         #Plot
         plt.close("all")
