@@ -15,6 +15,42 @@ class Guess(object):
         self.fx = fx
         self.fy = fy
 
+def gaussian_peak(x, a, x0, sigma, offset):
+    """
+    The fitting function of gaussian peak.
+    """
+    x0 = float(x0)
+    g = a*np.exp((-(x-x0)**2)/(2*sigma**2)) + offset
+    return g
+
+def gaussian_fit(stripe, guess_center, guess_sigma):   
+    """
+    Fit the gaussian peak.
+    """
+    initial_guess = (np.max(stripe), guess_center, guess_sigma, 0)     
+    x = np.arange(stripe.shape[0])   
+    try:
+        popt,_ = scipy.optimize.curve_fit(gaussian_peak, x, stripe, p0=initial_guess)
+    except RuntimeError:
+        return
+    return popt
+
+def find_center_by_column_fit(phase, guess_center, guess_sigma):
+    """
+    Find the center of unwrapped phase spectrum in the y direction.
+    """
+    fit_results = np.apply_along_axis(gaussian_fit, 0, phase, guess_center, guess_sigma)
+    fit_results = result[:,(~np.isnan(result).any(0))]
+    length = fit_results.shape[1]
+    mask_a = np.argsort(fit_results[0])[int(0.5*length):int(0.8*length)]        #only use columns with a values in 50%-80%
+    mask_x0 = np.argsort(fit_results[1])[int(0.2*length):int(0.8*length)]
+    mask_sigma = np.argsort(fit_results[2])[int(0.2*length):int(0.8*length)]
+    mask = np.intersect1d(np.intersect1d(mask_a, mask_x0, assume_unique=True), mask_sigma, assume_unique=True)      #only use these columns
+    centers = fit_results[1,mask]
+    mean = np.mean(centers)
+    std = np.std(centers)
+    return np.mean(centers[np.abs(centers-mean)<3*std])
+
 def three_peaks((x, y), a0, x0, y0, sigma_x0, sigma_y0, a1, x1, y1, sigma_x1, sigma_y1, offset):
     """
     The fitting function of three peaks.
@@ -41,7 +77,7 @@ def find_peaks(xy2d, guess):
     XYf2d = np.fft.fftn(xy2d)
     XYf2d_shifted = np.abs(np.fft.fftshift(XYf2d))                #shift frequency of (0,0) to the center
                  
-    a0 = np.max(XYf2d_shifted)                                               #compose initial fit condition from guess
+    a0 = np.max(XYf2d_shifted)                                    #compose initial fit condition from guess
     x0 = length_x/2
     y0 = length_y/2
     a1 = guess.peak_ratio*a0

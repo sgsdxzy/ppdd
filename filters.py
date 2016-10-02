@@ -24,7 +24,7 @@ def filt_move(xy2d, fx, fy, xband=0.01, yband=0.1):
 
     #Remove negative frequencies
     XYf2df = np.fft.fftn(xy2df)
-    XYf2df[:,floor(length_x/2):]=0
+    XYf2df[:,length_x/2:]=0
     #Shift second peak to center
     xy2df0 = np.fft.ifftn(XYf2df)
     phase = np.angle(xy2df0)
