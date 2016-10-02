@@ -8,8 +8,8 @@ def filt_move(xy2d, fx, fy, xband=0.01, yband=0.1):
     """
     length_x = xy2d.shape[1]
     length_y = xy2d.shape[0]
-    x_filter_length = length_x / 3
-    y_filter_length = length_y / 3
+    x_filter_length = (length_x/3+1)/2*2-1
+    y_filter_length = (length_y/3+1)/2*2-1
     #Filter on x direction
     b = signal.firwin(x_filter_length, cutoff=[fx*2-xband,fx*2+xband], window=('kaiser',8), pass_zero=False)
     a = np.zeros([x_filter_length])
@@ -34,6 +34,6 @@ def filt_move(xy2d, fx, fy, xband=0.01, yband=0.1):
 
     #Unwrap
     phase = (phase+np.pi) % (2*np.pi) - np.pi
-    unwrapped = unwrap.unwrap(phase)
+    phase = unwrap.unwrap(phase)
 
     return phase
