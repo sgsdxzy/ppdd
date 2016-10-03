@@ -113,12 +113,12 @@ class PPDDWindow(QMainWindow):
         down.yband.setValidator(QDoubleValidator(0, 0.5, 6))
         down.grid.addWidget(down.yband, 3, 1)
 
-        down.grid.addWidget(QLabel("method"), 4, 0)
+        down.grid.addWidget(QLabel("method"), 4, 0, 1, 2)
         down.method = QComboBox()
         down.method.addItem("Hansen-Law")
         down.method.addItem("Onion-bordas")
         down.method.addItem("Basex")
-        down.grid.addWidget(down.method, 4, 1)
+        down.grid.addWidget(down.method, 5, 0, 1, 2)
 
         #the right column is used to display 4 plots in (2, 2) style
         right = layout.right
@@ -167,6 +167,8 @@ class PPDDWindow(QMainWindow):
         run.setStatusTip('Run ppdd')
         run.triggered.connect(self.runPPDD)
 
+        #TODO batch-run
+
         exitAction = QAction(QIcon.fromTheme('application-exit'), 'Exit', self)
         exitAction.setShortcut('Ctrl+Q')
         exitAction.setStatusTip('Exit application')
@@ -208,15 +210,30 @@ class PPDDWindow(QMainWindow):
     def loadFileDialog(self):
         filenames = QFileDialog.getOpenFileName(self, 'Open file', '', 'Data file (*.txt)', None, QFileDialog.DontUseNativeDialog)
         if filenames[0]:
+            self.update_conf()
+            pypdd = self.ppdd
             try :
-                self.filename = filenames[0]
-                self.ppdd.readfile(filenames[0])
-                self.statusBar().showMessage('Scucessfully read file: {0}'.format(filenames[0]))
+                pypdd.readfile(filenames[0])
             except :
                 error = QErrorMessage(self)
                 error.showMessage('Error reading file: {0}'.format(filenames[0]))
                 self.statusBar().showMessage('Error reading file: {0}'.format(filenames[0]))
                 error.exec_() 
+                return
+
+            self.filename = filenames[0]
+            self.statusBar().showMessage('Scucessfully read file: {0}'.format(filenames[0]))
+
+            #plot raw data and selected region
+            ax_raw = self.layout.right.raw.axes
+            ax_raw.set_title('Raw data')
+            im1 = ax_raw.pcolormesh(pypdd.rawdata)
+            rect1 = patches.Rectangle((pypdd.xmin, pypdd.ymin), pypdd.xmax-pypdd.xmin, pypdd.ymax-pypdd.ymin, linewidth=2, edgecolor='r', facecolor='none')
+            ax_raw.set_xlim(0, pypdd.rawdata.shape[1])
+            ax_raw.set_ylim(0, pypdd.rawdata.shape[0])
+            ax_raw.add_patch(rect1)
+            self.layout.right.raw.draw()
+
 
     def update_conf(self):
         #TODO validate inputs
