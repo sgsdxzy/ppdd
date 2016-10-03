@@ -65,7 +65,7 @@ def guss_gaussian(x):
     c_guess = (x[0] + x[-1]) / 2
     a_guess = x.max() - c_guess
     mu_guess = x.argmax()
-    x_inter = interp1d(range(len(x)), x)
+    x_inter = interp1d(np.arange(len(x)), x)
 
     def _(i):
         return x_inter(i) - a_guess / 2 - c_guess
@@ -95,7 +95,7 @@ def fit_gaussian(x, xmin, xmax):
     out : tuple of float
         (a, mu, sigma, c)
     """
-    p, q = curve_fit(gaussian, list(range(x.size)), x, p0=guss_gaussian(x), bounds=([-np.inf, xmin, -np.inf, -np.inf], [np.inf, xmax, np.inf, np.inf]))
+    p, q = curve_fit(gaussian, np.arange(x.size), x, p0=guss_gaussian(x), bounds=([-np.inf, xmin, -np.inf, -np.inf], [np.inf, xmax, np.inf, np.inf]))
     return p
 
 def find_center_by_gaussian_fit(IM, ymin, ymax):

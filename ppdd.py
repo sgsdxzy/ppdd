@@ -14,13 +14,18 @@ import fittools
 def main():
     #create a Guess object
     guess = fittools.Guess(0.15, 0.5, 0.4, 0.8, 0.5, 3e-5, 0.06, 0.0)
+    #configurations
+    data_region = [400, 600, 0, 800]        #ymin, ymax, xmin, xmax
+    passbands = [0.01, 0.1]                 #xband, yband
+    symmetry_axis_region = [50, 150]        #the limits of the symmetry axis, [ymin, ymax] 
+
     failed_peaks = []
     failed_symmetries = []
 
     #Read Data
     for filename in sys.argv[1:]:
         rawdata = np.loadtxt(filename, dtype=int)
-        xy2d = rawdata[400:600,0:800] #TODO region
+        xy2d = rawdata[data_region[0]:data_region[1],data_region[2]:data_region[3]]
         #Fit three peaks to find the secondary peak
         try :
             fx, fy = fittools.find_peaks(xy2d, guess)
@@ -29,13 +34,11 @@ def main():
             continue
 
         #Filter
-        phase = filters.filt_move(xy2d, fx, fy, xband=0.01, yband=0.1) #TODO passband
+        phase = filters.filt_move(xy2d, fx, fy, xband=passbands[0], yband=passbands[1])
 
         #Find the center of phase spectrum
         try :
-            ymin = 50
-            ymax = 150
-            ycenter = fittools.find_symmetry_axis(phase, ymin, ymax) #TODO ymin and ymax
+            ycenter = fittools.find_symmetry_axis(phase, symmetry_axis_region[0], symmetry_axis_region[1])
         except RuntimeError :       #currently not possible because find_symmetry_axis always give a center in [ymin, ymax]
             failed_symmetries.append(filename)
             continue
