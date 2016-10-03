@@ -130,4 +130,5 @@ ENV/
 
 # data
 *.txt
-output/*.png
+output/
+basex/
