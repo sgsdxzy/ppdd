@@ -10,12 +10,17 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-import filters
 import fittools
 
 class PPDD(object):
     """
     Python Plasma Density Diagnostics(PPDD) is the main class to read input data, perform abel transfrom and output transfrom result.
+    A run should consists of methods in the following order:
+    readfile
+    find_peaks
+    filt_move
+    find_symmetry_axis
+    abel
     """
     def __init__(self, xmin = 0, xmax = 800, ymin = 400, ymax = 600, xband = 0.01, yband = 0.1, symin = 50, symax = 150, **kwargs):
         self.guess = fittools.Guess(**kwargs);
@@ -39,12 +44,12 @@ class PPDD(object):
         Read input file filename
         """
         self.rawdata = np.loadtxt(filename, dtype=int)
-        self.xy2d = self.rawdata[self.ymin:self.ymax, self.xmin:self.xmax]
 
     def find_peaks(self):
         """
         Find the three peaks in the frequency spectrum of xy2d. 
         """
+        self.xy2d = self.rawdata[self.ymin:self.ymax, self.xmin:self.xmax]
         self.fx, self.fy, self.XYf2d_shifted, newguess = fittools.find_peaks(self.xy2d, self.guess) 
         self.guess = newguess
 
