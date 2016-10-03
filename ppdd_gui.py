@@ -1,8 +1,8 @@
 import sys
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QTextEdit, QAction, QApplication,
                             QMessageBox, QGridLayout, QPushButton, QFileDialog, QErrorMessage,
-                            QSizePolicy, QLabel, QLineEdit)
-from PyQt5.QtGui import QIcon, QDoubleValidator
+                            QSizePolicy, QLabel, QLineEdit, QComboBox)
+from PyQt5.QtGui import QIcon, QDoubleValidator, QIntValidator
 import matplotlib
 # Make sure that we are using QT5
 matplotlib.use('Qt5Agg')
@@ -18,10 +18,15 @@ import ppdd
 class PPDDWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.initUI()
         self.filename = ''
         self.ppdd = ppdd.PPDD()
         self.spectrum_vmax = 1e6        #used to display the amplitude spectrum
+        self.method_dict = {
+            "Hansen-Law": "hansenlaw",
+            "Onion-bordas": "onion_bordas",
+            "Basex": "basex"
+        }
+        self.initUI()
         
     def initUI(self): 
         #using a grid layout Qwidget as centeralwidget
@@ -39,39 +44,88 @@ class PPDDWindow(QMainWindow):
         layout.grid.addWidget(layout.left, 0, 0)
         layout.grid.addWidget(layout.right, 0, 1)
 
-        #the left column
+        #the left column is splited to up and down two rows
         left = layout.left
         left.grid = QGridLayout()
-        left.grid.setColumnStretch(0, 3)
-        left.grid.setColumnStretch(1, 7)
         left.setLayout(left.grid)
+        #left.grid.setRowStretch(0, 3)
+        #left.grid.setRowStretch(1, 7)
+        left.up = QWidget()
+        left.down = QWidget()
+        left.grid.addWidget(left.up, 0, 0)
+        left.grid.addWidget(left.down, 1, 0)
 
-        left.grid.addWidget(QLabel(""), 0, 0)
-        left.fx = QLineEdit()
-        left.fx.setValidator(QDoubleValidator(0, 0.5, 6))
-        left.grid.addWidget(left.fx, 0, 1)
+        #the left up part
+        up = left.up
+        up.grid = QGridLayout()
+        up.setLayout(up.grid)
+        up.grid.setColumnStretch(0, 5)
+        up.grid.setColumnStretch(1, 5)
 
-        left.grid.addWidget(QLabel("fx"), 0, 0)
-        left.fx = QLineEdit()
-        left.fx.setValidator(QDoubleValidator(0, 0.5, 6))
-        left.grid.addWidget(left.fx, 0, 1)
+        up.grid.addWidget(QLabel("X range"), 0, 0, 1, 2)
+        up.xmin = QLineEdit()
+        up.xmin.setValidator(QIntValidator())
+        up.grid.addWidget(up.xmin, 1, 0)
+        up.xmax = QLineEdit()
+        up.xmax.setValidator(QIntValidator())
+        up.grid.addWidget(up.xmax, 1, 1)
 
-        left.grid.addWidget(QLabel("fx"), 0, 0)
-        left.fx = QLineEdit()
-        left.fx.setValidator(QDoubleValidator(0, 0.5, 6))
-        left.grid.addWidget(left.fx, 0, 1)
+        up.grid.addWidget(QLabel("Y range"), 2, 0, 1, 2)
+        up.ymin = QLineEdit()
+        up.ymin.setValidator(QIntValidator())
+        up.grid.addWidget(up.ymin, 3, 0)
+        up.ymax = QLineEdit()
+        up.ymax.setValidator(QIntValidator())
+        up.grid.addWidget(up.ymax, 3, 1)
 
-        left.grid.addWidget(QLabel("fy"), 1, 0)
-        left.fy = QLineEdit()
-        left.fy.setValidator(QDoubleValidator(0, 0.5, 6))
-        left.grid.addWidget(left.fy, 1, 1)
+        up.grid.addWidget(QLabel("Symmetry range"), 4, 0, 1, 2)
+        up.symin = QLineEdit()
+        up.symin.setValidator(QIntValidator())
+        up.grid.addWidget(up.symin, 5, 0)
+        up.symax = QLineEdit()
+        up.symax.setValidator(QIntValidator())
+        up.grid.addWidget(up.symax, 5, 1)
+
+        #the left down part
+        down = left.down
+        down.grid = QGridLayout()
+        down.setLayout(down.grid)
+        down.grid.setColumnStretch(0, 3)
+        down.grid.setColumnStretch(1, 7)
+
+        down.grid.addWidget(QLabel("fx"), 0, 0)
+        down.fx = QLineEdit()
+        down.fx.setValidator(QDoubleValidator(0, 0.5, 6))
+        down.grid.addWidget(down.fx, 0, 1)
+
+        down.grid.addWidget(QLabel("fy"), 1, 0)
+        down.fy = QLineEdit()
+        down.fy.setValidator(QDoubleValidator(0, 0.5, 6))
+        down.grid.addWidget(down.fy, 1, 1)
+
+        down.grid.addWidget(QLabel("xband"), 2, 0)
+        down.xband = QLineEdit()
+        down.xband.setValidator(QDoubleValidator(0, 0.5, 6))
+        down.grid.addWidget(down.xband, 2, 1)
+
+        down.grid.addWidget(QLabel("yband"), 3, 0)
+        down.yband = QLineEdit()
+        down.yband.setValidator(QDoubleValidator(0, 0.5, 6))
+        down.grid.addWidget(down.yband, 3, 1)
+
+        down.grid.addWidget(QLabel("method"), 4, 0)
+        down.method = QComboBox()
+        down.method.addItem("Hansen-Law")
+        down.method.addItem("Onion-bordas")
+        down.method.addItem("Basex")
+        down.grid.addWidget(down.method, 4, 1)
 
         #the right column is used to display 4 plots in (2, 2) style
         right = layout.right
         right.grid = QGridLayout()
+        right.setLayout(right.grid)
         right.grid.setColumnStretch(0, 45)
         right.grid.setColumnStretch(1, 55)
-        right.setLayout(right.grid)
 
         right.raw = MplCanvas()
         right.phase = MplCanvas()
@@ -83,7 +137,18 @@ class PPDDWindow(QMainWindow):
         right.grid.addWidget(right.spectrum, 1, 0)
         right.grid.addWidget(right.density, 1, 1)
 
-
+        #write inital values
+        pyppd = self.ppdd
+        layout.left.up.xmin.setText(str(pyppd.xmin))
+        layout.left.up.xmax.setText(str(pyppd.xmax))
+        layout.left.up.ymin.setText(str(pyppd.ymin))
+        layout.left.up.ymax.setText(str(pyppd.ymax))
+        layout.left.up.symin.setText(str(pyppd.symin))
+        layout.left.up.symax.setText(str(pyppd.symax))
+        layout.left.down.fx.setText('{0:.4f}'.format(pyppd.guess.fx))
+        layout.left.down.fy.setText('{0:.4f}'.format(pyppd.guess.fy))
+        layout.left.down.xband.setText('{0:.3f}'.format(pyppd.xband))
+        layout.left.down.yband.setText('{0:.3f}'.format(pyppd.yband))
 
 
         openFile = QAction(QIcon.fromTheme('document-open'), 'Open', self)
@@ -152,16 +217,29 @@ class PPDDWindow(QMainWindow):
             self.statusBar().showMessage('No file is loaded, please load data file first!')
             return
         pyppd = self.ppdd
-        if not pyppd.peak_fitted :  #if already fitted peaks, skip to speed up
-            try :
-                pyppd.find_peaks()
-            except RuntimeError :
-                self.statusBar().showMessage('Failed to find the secondary peak.')
-                return
 
-        self.layout.left.fx.setText('{0:.6f}'.format(pyppd.fx))
-        self.layout.left.fy.setText('{0:.6f}'.format(pyppd.fy))
-                
+        #TODO validate inputs
+
+        newxmin = int(self.layout.left.up.xmin.text())
+        newxmax = int(self.layout.left.up.xmax.text())
+        newymin = int(self.layout.left.up.ymin.text())
+        newymax = int(self.layout.left.up.ymax.text())
+
+        if not ((newxmin == pyppd.xmin) and (newymin == pyppd.ymin) and (newxmax == pyppd.xmax) and (newymax == pyppd.ymax)) :
+            #input has changed
+            pyppd.xmin = newxmin
+            pyppd.xmax = newxmax
+            pyppd.ymin = newymin
+            pyppd.ymax = newymax
+            pyppd.peak_fitted = False #bcause input has changed
+
+        pyppd.symin = int(self.layout.left.up.symin.text())
+        pyppd.symax = int(self.layout.left.up.symax.text())
+        pyppd.xband = float(self.layout.left.down.xband.text())
+        pyppd.yband = float(self.layout.left.down.yband.text())
+
+        pyppd.method = self.method_dict[str(self.layout.left.down.method.currentText())]
+
         #plot raw data and selected region
         ax_raw = self.layout.right.raw.axes
         ax_raw.set_title('Raw data')
@@ -172,6 +250,28 @@ class PPDDWindow(QMainWindow):
         ax_raw.add_patch(rect1)
         self.layout.right.raw.draw()
 
+        if not pyppd.peak_fitted :  #if already fitted peaks, skip to speed up
+            try :
+                pyppd.guess.fx = float(self.layout.left.down.fx.text())
+                pyppd.guess.fy = float(self.layout.left.down.fy.text())
+                pyppd.find_peaks()
+            except RuntimeError :
+                self.statusBar().showMessage('Failed to find the secondary peak. Please input fx and fy and run again.')
+                #plot amplitude spectrum without passbands
+                ax_spectrum = self.layout.right.spectrum.axes
+                XYf2d = np.fft.fftn(pyppd.xy2d)
+                XYf2d_shifted = np.abs(np.fft.fftshift(XYf2d))     
+                xfreq = np.fft.fftshift(np.fft.fftfreq(XYf2d_shifted.shape[1]))
+                yfreq = np.fft.fftshift(np.fft.fftfreq(XYf2d_shifted.shape[0]))
+                im3 = ax_spectrum.pcolormesh(xfreq, yfreq, XYf2d_shifted, vmax=self.spectrum_vmax)
+                ax_spectrum.set_xlim(-0.2,0.2)
+                ax_spectrum.set_ylim(-0.2,0.2)
+                self.layout.right.spectrum.draw()
+                return
+
+        self.layout.left.down.fx.setText('{0:.4f}'.format(pyppd.fx))
+        self.layout.left.down.fy.setText('{0:.4f}'.format(pyppd.fy))
+                
         #plot amplitude spectrum
         ax_spectrum = self.layout.right.spectrum.axes
         XYf2d_shifted = pyppd.XYf2d_shifted
@@ -185,11 +285,20 @@ class PPDDWindow(QMainWindow):
         self.layout.right.spectrum.draw()
 
         pyppd.filt_move()
+
         #find the center of phase spectrum
         try :
             pyppd.find_symmetry_axis()
         except RuntimeError :       #currently not possible because find_symmetry_axis always give a center in [ymin, ymax]
             self.statusBar().showMessage('Failed to find the symmetry axis.')
+            #plot phase spectrum without center line
+            ax_phase = self.layout.right.phase.axes
+            ax_phase.set_title('Phase spectrum')
+            im2 = ax_phase.pcolormesh(pyppd.phase)
+            divider2 = make_axes_locatable(ax_phase)
+            cax_phase = divider2.append_axes("right", size="5%", pad=0.05)
+            plt.colorbar(im2, cax_phase)
+            self.layout.right.phase.draw()
             return
 
         #plot phase spectrum

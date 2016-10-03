@@ -20,7 +20,7 @@ class PPDD(object):
     find_symmetry_axis
     abel
     """
-    def __init__(self, xmin = 0, xmax = 800, ymin = 400, ymax = 600, xband = 0.01, yband = 0.1, symin = 50, symax = 150, **kwargs):
+    def __init__(self, xmin = 0, xmax = 800, ymin = 400, ymax = 600, xband = 0.01, yband = 0.1, symin = 50, symax = 150, method = 'hansenlaw', **kwargs):
         self.guess = fittools.Guess(**kwargs);
         self.xmin = xmin        #crop the region [ymin:ymax, xmin:xmax] from raw input data
         self.xmax = xmax
@@ -30,6 +30,7 @@ class PPDD(object):
         self.yband = yband
         self.symin = symin      #limits the symmetry axis finding to [symin, symax]
         self.symax = symax
+        self.method = method
         self.peak_fitted = False
 
         self.abel_methods = {
@@ -91,9 +92,9 @@ class PPDD(object):
     def find_symmetry_axis(self):
         self.ycenter = fittools.find_symmetry_axis(self.phase, self.symin, self.symax)
 
-    def abel(self, method = 'hansenlaw'):
+    def abel(self):
         IM = fittools.half_image(self.phase.transpose(), self.ycenter)
-        self.abel_methods[method](IM)
+        self.abel_methods[self.method](IM)
 
     def abel_hansenlaw(self, IM):
         self.AIM = abel.hansenlaw.hansenlaw_transform(IM, direction = 'inverse').transpose()
@@ -102,7 +103,9 @@ class PPDD(object):
         self.AIM = abel.onion_bordas.onion_bordas_transform(IM, direction = 'inverse').transpose()
 
     def abel_basex(self, IM):
-        self.AIM = abel.basex.basex_transform(IM, basis_dir=os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'basex'), direction='inverse').transpose()
+        basex_path = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'basex')
+        os.makedirs(basex_path, exist_ok=True)
+        self.AIM = abel.basex.basex_transform(IM, basis_dir = basex_path, direction='inverse').transpose()
 
 
 def main():
