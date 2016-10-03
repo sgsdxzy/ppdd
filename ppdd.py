@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import sys
 import os
 import numpy as np
@@ -59,8 +57,8 @@ class PPDD(object):
         """
         length_x = self.xy2d.shape[1]
         length_y = self.xy2d.shape[0]
-        x_filter_length = (length_x/3+1)/2*2-1      #must be odd
-        y_filter_length = (length_y/3+1)/2*2-1      #must be odd
+        x_filter_length = (length_x//3+1)//2*2-1      #must be odd
+        y_filter_length = (length_y//3+1)//2*2-1      #must be odd
         #Filter on x direction
         b = signal.firwin(x_filter_length, cutoff=[self.fx*2-self.xband, self.fx*2+self.xband], window=('kaiser',8), pass_zero=False)
         a = np.zeros([x_filter_length])
@@ -74,7 +72,7 @@ class PPDD(object):
 
         #Remove negative frequencies
         XYf2df = np.fft.fftn(xy2df)
-        XYf2df[:,length_x/2:]=0
+        XYf2df[:,length_x//2:]=0
         #Shift second peak to center
         xy2df0 = np.fft.ifftn(XYf2df)
         phase = np.angle(xy2df0)
@@ -91,7 +89,7 @@ class PPDD(object):
         self.ycenter = fittools.find_symmetry_axis(self.phase, self.symin, self.symax)
 
     def abel(self, method = 'hansenlaw'):
-        IM = abel.tools.center.center_image(self.phase.transpose(), center=(self.phase.shape[1]/2-1, self.ycenter), odd_size=True, crop='valid_region')
+        IM = abel.tools.center.center_image(self.phase.transpose(), center=(self.phase.shape[1]//2-1, self.ycenter), odd_size=True, crop='valid_region')
         Q0, _, _, Q3 = abel.tools.symmetry.get_image_quadrants(IM, symmetry_axis=0, symmetrize_method='average')
         Q = np.concatenate((Q0,Q3[::-1]),axis=0)
         self.abel_methods[method](Q)
@@ -105,14 +103,6 @@ class PPDD(object):
     def abel_basex(self, Q):
         self.AIM = abel.basex.basex_transform(Q, basis_dir=os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'basex'), direction='inverse').transpose()
 
-def mkdir_p(path):
-    try:
-        os.makedirs(path)
-    except OSError as exc:  # Python >2.5
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
-            raise
 
 def main():
     #create a PPDD object
@@ -182,7 +172,7 @@ def main():
         plt.colorbar(im4, cax4)
 
         outputpath = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'output')
-        mkdir_p(outputpath)
+        os.makedirs(outputpath, exist_ok=True)
         plt.savefig(os.path.join(outputpath, os.path.basename(filename).rsplit('.', 1)[0]+'.png'), bbox_inches='tight')
         plt.close()
 

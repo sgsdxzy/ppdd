@@ -146,14 +146,11 @@ def find_symmetry_axis(phase, ymin, ymax):
     center = find_center_by_convolution(phase, ymin, ymax)
     return center
 
-def three_peaks((x, y), a0, x0, y0, sigma_x0, sigma_y0, a1, x1, y1, sigma_x1, sigma_y1, offset):
+def three_peaks(xy_tuple, a0, x0, y0, sigma_x0, sigma_y0, a1, x1, y1, sigma_x1, sigma_y1, offset):
     """
     The fitting function of three peaks.
     """
-    x0 = float(x0)
-    y0 = float(y0)
-    x1 = float(x1)
-    y1 = float(y1)
+    (x, y) = xy_tuple
     peak0 = a0*np.exp((-(x-x0)**2)/(2*sigma_x0**2) + (-(y-y0)**2)/(2*sigma_y0**2))
     peak1 = a1*np.exp((-(x-x1)**2)/(2*sigma_x1**2) + (-(y-y1)**2)/(2*sigma_y1**2))
     peakm1 = a1*np.exp((-(x+x1-2*x0)**2)/(2*sigma_x1**2) + (-(y+y1-2*y0)**2)/(2*sigma_y1**2))
@@ -167,14 +164,14 @@ def find_peaks(xy2d, guess):
     """    
     length_x = xy2d.shape[1]
     length_y = xy2d.shape[0]
-    dXf = float(1.0/length_x)
-    dYf = float(1.0/length_y)
+    dXf = 1/length_x
+    dYf = 1/length_y
     XYf2d = np.fft.fftn(xy2d)
     XYf2d_shifted = np.abs(np.fft.fftshift(XYf2d))                #shift frequency of (0,0) to the center
                  
     a0 = np.max(XYf2d_shifted)                                    #compose initial fit condition from guess
-    x0 = length_x/2
-    y0 = length_y/2
+    x0 = length_x//2
+    y0 = length_y//2
     a1 = guess.peak_ratio*a0
     x1 = x0 + guess.fx/dXf
     y1 = y0 + guess.fy/dYf
