@@ -130,4 +130,4 @@ ENV/
 
 # data
 *.txt
-*.png
+output/*.png

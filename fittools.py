@@ -6,7 +6,7 @@ class Guess(object):
     """
     Container of guesses for fitting, used on initial fit guesses and learning.
     """
-    def __init__(self, peak_ratio, sigma_x0, sigma_y0, sigma_x1, sigma_y1, offset_ratio, fx, fy):
+    def __init__(self, peak_ratio = 0.1, sigma_x0 = 1, sigma_y0 = 1, sigma_x1 = 1, sigma_y1 = 1, offset_ratio = 3e-5, fx = 0.06, fy = 0):
         self.peak_ratio = peak_ratio
         self.sigma_x0 = sigma_x0
         self.sigma_y0 = sigma_y0
@@ -185,17 +185,19 @@ def find_peaks(xy2d, guess):
     
     fx = (popt[6]-popt[1])*dXf
     fy = (popt[7]-popt[2])*dYf
-    guess.peak_ratio = popt[5]/popt[0]                            #update guess
-    guess.sigma_x0 = popt[3]
-    guess.sigma_y0 = popt[4]
-    guess.sigma_x1 = popt[8]
-    guess.sigma_y1 = popt[9]
-    guess.offset_ratio = popt[10]/popt[0]
-    guess.fx = fx
-    guess.fy = fy
+
+    newguess = Guess()
+    newguess.peak_ratio = popt[5]/popt[0]                            #update guess
+    newguess.sigma_x0 = popt[3]
+    newguess.sigma_y0 = popt[4]
+    newguess.sigma_x1 = popt[8]
+    newguess.sigma_y1 = popt[9]
+    newguess.offset_ratio = popt[10]/popt[0]
+    newguess.fx = fx
+    newguess.fy = fy
     
     #xband1 = 0.09#100*popt[3]*dXf/0.5                            #not used
     #xband2 = 0.16#(popt[6]-popt[1]+30*popt[8])*dXf/0.5
     #yband = 0.12#80*popt[9]*dYf/0.5
     
-    return fx, fy
+    return fx, fy, XYf2d_shifted, newguess
