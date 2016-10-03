@@ -30,6 +30,7 @@ class PPDD(object):
         self.yband = yband
         self.symin = symin      #limits the symmetry axis finding to [symin, symax]
         self.symax = symax
+        self.peak_fitted = False
 
         self.abel_methods = {
             "hansenlaw": self.abel_hansenlaw,
@@ -42,6 +43,7 @@ class PPDD(object):
         Read input file filename
         """
         self.rawdata = np.loadtxt(filename, dtype=int)
+        self.peak_fitted = False
 
     def find_peaks(self):
         """
@@ -50,6 +52,7 @@ class PPDD(object):
         self.xy2d = self.rawdata[self.ymin:self.ymax, self.xmin:self.xmax]
         self.fx, self.fy, self.XYf2d_shifted, newguess = fittools.find_peaks(self.xy2d, self.guess) 
         self.guess = newguess
+        self.peak_fitted = True
 
     def filt_move(self):
         """
@@ -89,19 +92,17 @@ class PPDD(object):
         self.ycenter = fittools.find_symmetry_axis(self.phase, self.symin, self.symax)
 
     def abel(self, method = 'hansenlaw'):
-        IM = abel.tools.center.center_image(self.phase.transpose(), center=(self.phase.shape[1]//2-1, self.ycenter), odd_size=True, crop='valid_region')
-        Q0, _, _, Q3 = abel.tools.symmetry.get_image_quadrants(IM, symmetry_axis=0, symmetrize_method='average')
-        Q = np.concatenate((Q0,Q3[::-1]),axis=0)
-        self.abel_methods[method](Q)
+        IM = fittools.half_image(self.phase.transpose(), self.ycenter)
+        self.abel_methods[method](IM)
 
-    def abel_hansenlaw(self, Q):
-        self.AIM = abel.hansenlaw.hansenlaw_transform(Q, direction = 'inverse').transpose()
+    def abel_hansenlaw(self, IM):
+        self.AIM = abel.hansenlaw.hansenlaw_transform(IM, direction = 'inverse').transpose()
 
-    def abel_onion_bordas(self, Q):
-        self.AIM = abel.onion_bordas.onion_bordas_transform(Q, direction = 'inverse').transpose()
+    def abel_onion_bordas(self, IM):
+        self.AIM = abel.onion_bordas.onion_bordas_transform(IM, direction = 'inverse').transpose()
 
-    def abel_basex(self, Q):
-        self.AIM = abel.basex.basex_transform(Q, basis_dir=os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'basex'), direction='inverse').transpose()
+    def abel_basex(self, IM):
+        self.AIM = abel.basex.basex_transform(IM, basis_dir=os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'basex'), direction='inverse').transpose()
 
 
 def main():

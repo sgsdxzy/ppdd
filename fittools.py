@@ -198,3 +198,13 @@ def find_peaks(xy2d, guess):
     #yband = 0.12#80*popt[9]*dYf/0.5
     
     return fx, fy, XYf2d_shifted, newguess
+
+def half_image(IM, xcenter):
+    """
+    Generate half of image IM by the image center in the x direction. This function is used to prepare for abel transfrom.
+    """
+    xcenter = int(np.rint(xcenter))
+    new_width = min(IM.shape[1] - xcenter - 1, xcenter)
+    left = IM[:, xcenter-new_width:xcenter+1][:, ::-1]
+    right = IM[:, xcenter:xcenter+new_width+1]
+    return (left + right) / 2
