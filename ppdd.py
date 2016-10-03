@@ -110,7 +110,7 @@ class PPDD(object):
 
 def main():
     #create a PPDD object
-    pyppd = PPDD()
+    pypdd = PPDD()
     failed_reads = []
     failed_peaks = []
     failed_symmetries = []
@@ -118,27 +118,27 @@ def main():
     #Read Data
     for filename in sys.argv[1:]:
         try :
-            pyppd.readfile(filename)
+            pypdd.readfile(filename)
         except :
             failed_reads.append(filename)
             continue
         #Fit three peaks to find the secondary peak
         try :
-            pyppd.find_peaks()
+            pypdd.find_peaks()
         except RuntimeError :
             failed_peaks.append(filename)
             continue
         #Filter
-        pyppd.filt_move()
+        pypdd.filt_move()
         #Find the center of phase spectrum
         try :
-            pyppd.find_symmetry_axis()
+            pypdd.find_symmetry_axis()
         except RuntimeError :       #currently not possible because find_symmetry_axis always give a center in [ymin, ymax]
             failed_symmetries.append(filename)
             continue
         #Abel transform
         try :
-            pyppd.abel()
+            pypdd.abel()
         except ValueError :     #given invalid symmetry axis
             failed_symmetries.append(filename)
             continue
@@ -148,29 +148,29 @@ def main():
         f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(20,10))
 
         ax1.set_title('Raw data')
-        im1 = ax1.pcolormesh(pyppd.rawdata)
-        rect1 = patches.Rectangle((pyppd.xmin, pyppd.ymin), pyppd.xmax-pyppd.xmin, pyppd.ymax-pyppd.ymin, linewidth=2, edgecolor='r', facecolor='none')
-        ax1.set_xlim(0, pyppd.rawdata.shape[1])
+        im1 = ax1.pcolormesh(pypdd.rawdata)
+        rect1 = patches.Rectangle((pypdd.xmin, pypdd.ymin), pypdd.xmax-pypdd.xmin, pypdd.ymax-pypdd.ymin, linewidth=2, edgecolor='r', facecolor='none')
+        ax1.set_xlim(0, pypdd.rawdata.shape[1])
         ax1.set_ylim(0, 800)
         ax1.add_patch(rect1)
 
         ax2.set_title('Phase spectrum')
-        im2 = ax2.pcolormesh(pyppd.phase)
-        ax2.hlines(pyppd.ycenter, 0, pyppd.phase.shape[1], linewidth=3, colors='black')
+        im2 = ax2.pcolormesh(pypdd.phase)
+        ax2.hlines(pypdd.ycenter, 0, pypdd.phase.shape[1], linewidth=3, colors='black')
         divider2 = make_axes_locatable(ax2)
         cax2 = divider2.append_axes("right", size="5%", pad=0.05)
         plt.colorbar(im2, cax2)
 
         ax3.set_title('Amplitude spectrum')
-        XYf2d_shifted = pyppd.XYf2d_shifted
+        XYf2d_shifted = pypdd.XYf2d_shifted
         im3 = ax3.pcolormesh(np.fft.fftshift(np.fft.fftfreq(XYf2d_shifted.shape[1])), np.fft.fftshift(np.fft.fftfreq(XYf2d_shifted.shape[0])), XYf2d_shifted,vmax=1e6)
         ax3.set_xlim(-0.2,0.2)
         ax3.set_ylim(-0.2,0.2)
-        rect3 = patches.Rectangle((pyppd.fx-pyppd.xband,-np.abs(pyppd.fy)-pyppd.yband), 2*pyppd.xband, 2*(pyppd.yband+np.abs(pyppd.fy)), linewidth=2, edgecolor='r', facecolor='none')
+        rect3 = patches.Rectangle((pypdd.fx-pypdd.xband,-np.abs(pypdd.fy)-pypdd.yband), 2*pypdd.xband, 2*(pypdd.yband+np.abs(pypdd.fy)), linewidth=2, edgecolor='r', facecolor='none')
         ax3.add_patch(rect3)
 
         ax4.set_title('Relative Refractivity')
-        im4 = ax4.pcolormesh(pyppd.AIM, vmax=0.1, vmin=0)
+        im4 = ax4.pcolormesh(pypdd.AIM, vmax=0.1, vmin=0)
         divider4 = make_axes_locatable(ax4)
         cax4 = divider4.append_axes("right", size="5%", pad=0.05)
         plt.colorbar(im4, cax4)

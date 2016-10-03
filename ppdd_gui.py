@@ -129,8 +129,14 @@ class PPDDWindow(QMainWindow):
 
         right.raw = MplCanvas()
         right.phase = MplCanvas()
+        right.phase.cax = make_axes_locatable(right.phase.axes).append_axes("right", size="5%", pad=0.05)       #create a cax for plotting colorbar
+        right.phase.cax.hold(False)
+        right.phase.cax.tick_params(axis='both', which='both', bottom='off', labelbottom='off')
         right.spectrum = MplCanvas()
         right.density = MplCanvas()
+        right.density.cax = make_axes_locatable(right.density.axes).append_axes("right", size="5%", pad=0.05)   #create a cax for plotting colorbar
+        right.density.cax.hold(False)
+        right.density.cax.tick_params(axis='both', which='both', bottom='off', labelbottom='off')
 
         right.grid.addWidget(right.raw, 0, 0)
         right.grid.addWidget(right.phase, 0, 1)
@@ -138,17 +144,17 @@ class PPDDWindow(QMainWindow):
         right.grid.addWidget(right.density, 1, 1)
 
         #write inital values
-        pyppd = self.ppdd
-        layout.left.up.xmin.setText(str(pyppd.xmin))
-        layout.left.up.xmax.setText(str(pyppd.xmax))
-        layout.left.up.ymin.setText(str(pyppd.ymin))
-        layout.left.up.ymax.setText(str(pyppd.ymax))
-        layout.left.up.symin.setText(str(pyppd.symin))
-        layout.left.up.symax.setText(str(pyppd.symax))
-        layout.left.down.fx.setText('{0:.4f}'.format(pyppd.guess.fx))
-        layout.left.down.fy.setText('{0:.4f}'.format(pyppd.guess.fy))
-        layout.left.down.xband.setText('{0:.3f}'.format(pyppd.xband))
-        layout.left.down.yband.setText('{0:.3f}'.format(pyppd.yband))
+        pypdd = self.ppdd
+        layout.left.up.xmin.setText(str(pypdd.xmin))
+        layout.left.up.xmax.setText(str(pypdd.xmax))
+        layout.left.up.ymin.setText(str(pypdd.ymin))
+        layout.left.up.ymax.setText(str(pypdd.ymax))
+        layout.left.up.symin.setText(str(pypdd.symin))
+        layout.left.up.symax.setText(str(pypdd.symax))
+        layout.left.down.fx.setText('{0:.4f}'.format(pypdd.guess.fx))
+        layout.left.down.fy.setText('{0:.4f}'.format(pypdd.guess.fy))
+        layout.left.down.xband.setText('{0:.3f}'.format(pypdd.xband))
+        layout.left.down.yband.setText('{0:.3f}'.format(pypdd.yband))
 
 
         openFile = QAction(QIcon.fromTheme('document-open'), 'Open', self)
@@ -212,54 +218,59 @@ class PPDDWindow(QMainWindow):
                 self.statusBar().showMessage('Error reading file: {0}'.format(filenames[0]))
                 error.exec_() 
 
-    def runPPDD(self):
-        if not self.filename :      #check if a file is loaded
-            self.statusBar().showMessage('No file is loaded, please load data file first!')
-            return
-        pyppd = self.ppdd
-
+    def update_conf(self):
         #TODO validate inputs
 
+        pypdd = self.ppdd
         newxmin = int(self.layout.left.up.xmin.text())
         newxmax = int(self.layout.left.up.xmax.text())
         newymin = int(self.layout.left.up.ymin.text())
         newymax = int(self.layout.left.up.ymax.text())
 
-        if not ((newxmin == pyppd.xmin) and (newymin == pyppd.ymin) and (newxmax == pyppd.xmax) and (newymax == pyppd.ymax)) :
+        if not ((newxmin == pypdd.xmin) and (newymin == pypdd.ymin) and (newxmax == pypdd.xmax) and (newymax == pypdd.ymax)) :
             #input has changed
-            pyppd.xmin = newxmin
-            pyppd.xmax = newxmax
-            pyppd.ymin = newymin
-            pyppd.ymax = newymax
-            pyppd.peak_fitted = False #bcause input has changed
+            pypdd.xmin = newxmin
+            pypdd.xmax = newxmax
+            pypdd.ymin = newymin
+            pypdd.ymax = newymax
+            pypdd.peak_fitted = False #bcause input has changed
 
-        pyppd.symin = int(self.layout.left.up.symin.text())
-        pyppd.symax = int(self.layout.left.up.symax.text())
-        pyppd.xband = float(self.layout.left.down.xband.text())
-        pyppd.yband = float(self.layout.left.down.yband.text())
+        pypdd.symin = int(self.layout.left.up.symin.text())
+        pypdd.symax = int(self.layout.left.up.symax.text())
+        pypdd.xband = float(self.layout.left.down.xband.text())
+        pypdd.yband = float(self.layout.left.down.yband.text())
 
-        pyppd.method = self.method_dict[str(self.layout.left.down.method.currentText())]
+        pypdd.method = self.method_dict[str(self.layout.left.down.method.currentText())]
+
+
+    def runPPDD(self):
+        if not self.filename :      #check if a file is loaded
+            self.statusBar().showMessage('No file is loaded, please load data file first!')
+            return
+
+        self.update_conf()
+        pypdd = self.ppdd
 
         #plot raw data and selected region
         ax_raw = self.layout.right.raw.axes
         ax_raw.set_title('Raw data')
-        im1 = ax_raw.pcolormesh(pyppd.rawdata)
-        rect1 = patches.Rectangle((pyppd.xmin, pyppd.ymin), pyppd.xmax-pyppd.xmin, pyppd.ymax-pyppd.ymin, linewidth=2, edgecolor='r', facecolor='none')
-        ax_raw.set_xlim(0, pyppd.rawdata.shape[1])
-        ax_raw.set_ylim(0, pyppd.rawdata.shape[0])
+        im1 = ax_raw.pcolormesh(pypdd.rawdata)
+        rect1 = patches.Rectangle((pypdd.xmin, pypdd.ymin), pypdd.xmax-pypdd.xmin, pypdd.ymax-pypdd.ymin, linewidth=2, edgecolor='r', facecolor='none')
+        ax_raw.set_xlim(0, pypdd.rawdata.shape[1])
+        ax_raw.set_ylim(0, pypdd.rawdata.shape[0])
         ax_raw.add_patch(rect1)
         self.layout.right.raw.draw()
 
-        if not pyppd.peak_fitted :  #if already fitted peaks, skip to speed up
+        if not pypdd.peak_fitted :  #if already fitted peaks, skip to speed up
             try :
-                pyppd.guess.fx = float(self.layout.left.down.fx.text())
-                pyppd.guess.fy = float(self.layout.left.down.fy.text())
-                pyppd.find_peaks()
+                pypdd.guess.fx = float(self.layout.left.down.fx.text())
+                pypdd.guess.fy = float(self.layout.left.down.fy.text())
+                pypdd.find_peaks()
             except RuntimeError :
                 self.statusBar().showMessage('Failed to find the secondary peak. Please input fx and fy and run again.')
                 #plot amplitude spectrum without passbands
                 ax_spectrum = self.layout.right.spectrum.axes
-                XYf2d = np.fft.fftn(pyppd.xy2d)
+                XYf2d = np.fft.fftn(pypdd.xy2d)
                 XYf2d_shifted = np.abs(np.fft.fftshift(XYf2d))     
                 xfreq = np.fft.fftshift(np.fft.fftfreq(XYf2d_shifted.shape[1]))
                 yfreq = np.fft.fftshift(np.fft.fftfreq(XYf2d_shifted.shape[0]))
@@ -269,51 +280,47 @@ class PPDDWindow(QMainWindow):
                 self.layout.right.spectrum.draw()
                 return
 
-        self.layout.left.down.fx.setText('{0:.4f}'.format(pyppd.fx))
-        self.layout.left.down.fy.setText('{0:.4f}'.format(pyppd.fy))
+        self.layout.left.down.fx.setText('{0:.4f}'.format(pypdd.fx))
+        self.layout.left.down.fy.setText('{0:.4f}'.format(pypdd.fy))
                 
         #plot amplitude spectrum
         ax_spectrum = self.layout.right.spectrum.axes
-        XYf2d_shifted = pyppd.XYf2d_shifted
+        XYf2d_shifted = pypdd.XYf2d_shifted
         xfreq = np.fft.fftshift(np.fft.fftfreq(XYf2d_shifted.shape[1]))
         yfreq = np.fft.fftshift(np.fft.fftfreq(XYf2d_shifted.shape[0]))
         im3 = ax_spectrum.pcolormesh(xfreq, yfreq, XYf2d_shifted, vmax=self.spectrum_vmax)
         ax_spectrum.set_xlim(-0.2,0.2)
         ax_spectrum.set_ylim(-0.2,0.2)
-        rect3 = patches.Rectangle((pyppd.fx-pyppd.xband,-np.abs(pyppd.fy)-pyppd.yband), 2*pyppd.xband, 2*(pyppd.yband+np.abs(pyppd.fy)), linewidth=2, edgecolor='r', facecolor='none')
+        rect3 = patches.Rectangle((pypdd.fx-pypdd.xband,-np.abs(pypdd.fy)-pypdd.yband), 2*pypdd.xband, 2*(pypdd.yband+np.abs(pypdd.fy)), linewidth=2, edgecolor='r', facecolor='none')
         ax_spectrum.add_patch(rect3)
         self.layout.right.spectrum.draw()
 
-        pyppd.filt_move()
+        pypdd.filt_move()
 
         #find the center of phase spectrum
         try :
-            pyppd.find_symmetry_axis()
+            pypdd.find_symmetry_axis()
         except RuntimeError :       #currently not possible because find_symmetry_axis always give a center in [ymin, ymax]
             self.statusBar().showMessage('Failed to find the symmetry axis.')
             #plot phase spectrum without center line
             ax_phase = self.layout.right.phase.axes
             ax_phase.set_title('Phase spectrum')
-            im2 = ax_phase.pcolormesh(pyppd.phase)
-            divider2 = make_axes_locatable(ax_phase)
-            cax_phase = divider2.append_axes("right", size="5%", pad=0.05)
-            plt.colorbar(im2, cax_phase)
+            im2 = ax_phase.pcolormesh(pypdd.phase)
+            plt.colorbar(im2, self.layout.right.phase.cax)
             self.layout.right.phase.draw()
             return
 
         #plot phase spectrum
         ax_phase = self.layout.right.phase.axes
         ax_phase.set_title('Phase spectrum')
-        im2 = ax_phase.pcolormesh(pyppd.phase)
-        divider2 = make_axes_locatable(ax_phase)
-        cax_phase = divider2.append_axes("right", size="5%", pad=0.05)
-        plt.colorbar(im2, cax_phase)
-        ax_phase.hlines(pyppd.ycenter, 0, pyppd.phase.shape[1], linewidth=3, colors='black')
+        im2 = ax_phase.pcolormesh(pypdd.phase)
+        plt.colorbar(im2, self.layout.right.phase.cax)
+        ax_phase.hlines(pypdd.ycenter, 0, pypdd.phase.shape[1], linewidth=3, colors='black')
         self.layout.right.phase.draw()
 
         #perform abel transform
         try :
-            pyppd.abel()
+            pypdd.abel()
         except ValueError :     #given invalid symmetry axis
             self.statusBar().showMessage('Failed to perform Abel transform.')
             return
@@ -321,12 +328,10 @@ class PPDDWindow(QMainWindow):
         #plot desnity (relative refractivity)
         ax_density = self.layout.right.density.axes
         ax_density.set_title('Relative Refractivity')
-        im4 = ax_density.pcolormesh(pyppd.AIM, vmax=0.1, vmin=0)
-        ax_density.set_xlim(0, pyppd.AIM.shape[1])
-        ax_density.set_ylim(0, pyppd.AIM.shape[0])
-        divider4 = make_axes_locatable(ax_density)
-        cax_density = divider4.append_axes("right", size="5%", pad=0.05)
-        plt.colorbar(im4, cax_density)
+        im4 = ax_density.pcolormesh(pypdd.AIM, vmax=0.1, vmin=0)
+        ax_density.set_xlim(0, pypdd.AIM.shape[1])
+        ax_density.set_ylim(0, pypdd.AIM.shape[0])
+        plt.colorbar(im2, self.layout.right.density.cax)
         self.layout.right.density.draw()
 
     def about(self):
