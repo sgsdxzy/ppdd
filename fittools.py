@@ -157,17 +157,15 @@ def three_peaks(xy_tuple, a0, x0, y0, sigma_x0, sigma_y0, a1, x1, y1, sigma_x1, 
     g = peak0 + peak1 + peakm1 + offset
     return g.ravel()
             
-def find_peaks(xy2d, guess):
+def find_peaks(XYf2d_shifted, guess):
     """
-    Fit the three peaks in the frequency spectrum of image(2d-array) xy2d. 
+    Fit the three peaks in the shifted 2d amplitude spectrum XYf2d_shifted. 
     Return the phase shift of the secondary peak in x and y direction.
     """    
-    length_x = xy2d.shape[1]
-    length_y = xy2d.shape[0]
+    length_x = XYf2d_shifted.shape[1]
+    length_y = XYf2d_shifted.shape[0]
     dXf = 1/length_x
     dYf = 1/length_y
-    XYf2d = np.fft.fftn(xy2d)
-    XYf2d_shifted = np.abs(np.fft.fftshift(XYf2d))                #shift frequency of (0,0) to the center
                  
     a0 = np.max(XYf2d_shifted)                                    #compose initial fit condition from guess
     x0 = length_x//2
@@ -197,7 +195,7 @@ def find_peaks(xy2d, guess):
     #xband2 = 0.16#(popt[6]-popt[1]+30*popt[8])*dXf/0.5
     #yband = 0.12#80*popt[9]*dYf/0.5
     
-    return fx, fy, XYf2d_shifted, newguess
+    return fx, fy, newguess
 
 def half_image(IM, xcenter):
     """

@@ -7,9 +7,7 @@ import matplotlib
 matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib import pyplot as plt, patches, colorbar
 import numpy as np
 
 import ppdd
@@ -19,7 +17,6 @@ class PPDDWindow(QMainWindow):
         super().__init__()
         self.filename = ''
         self.ppdd = ppdd.PPDD()
-        self.spectrum_vmax = 1e6        #used to display the amplitude spectrum
         self.method_dict = {
             "Hansen-Law": "hansenlaw",
             "Onion-bordas": "onion_bordas",
@@ -128,12 +125,12 @@ class PPDDWindow(QMainWindow):
 
         right.raw = MplCanvas()
         right.phase = MplCanvas()
-        right.phase.cax = make_axes_locatable(right.phase.axes).append_axes("right", size="5%", pad=0.05)       #create a cax for plotting colorbar
+        right.phase.cax, _ = colorbar.make_axes(right.phase.axes, fraction = 0.05,  pad = 0.01, aspect = 10)
         right.phase.cax.hold(False)
         right.phase.cax.tick_params(axis='both', which='both', bottom='off', labelbottom='off')
         right.spectrum = MplCanvas()
         right.density = MplCanvas()
-        right.density.cax = make_axes_locatable(right.density.axes).append_axes("right", size="5%", pad=0.05)   #create a cax for plotting colorbar
+        right.density.cax, _ = colorbar.make_axes(right.density.axes, fraction = 0.05,  pad = 0.01, aspect = 10)
         right.density.cax.hold(False)
         right.density.cax.tick_params(axis='both', which='both', bottom='off', labelbottom='off')
 
@@ -209,7 +206,6 @@ class PPDDWindow(QMainWindow):
     def loadFileDialog(self):
         filenames = QFileDialog.getOpenFileName(self, 'Open file', '', 'Data file (*.txt)', None, QFileDialog.DontUseNativeDialog)
         if filenames[0]:
-            self.update_conf()
             pypdd = self.ppdd
             try :
                 pypdd.readfile(filenames[0])
@@ -224,13 +220,12 @@ class PPDDWindow(QMainWindow):
             self.statusBar().showMessage('Scucessfully read file: {0}'.format(filenames[0]))
 
             #plot raw data and selected region
+            xmin = int(self.layout.left.up.xmin.text())
+            xmax = int(self.layout.left.up.xmax.text())
+            ymin = int(self.layout.left.up.ymin.text())
+            ymax = int(self.layout.left.up.ymax.text())
             ax_raw = self.layout.right.raw.axes
-            ax_raw.set_title('Raw data')
-            im1 = ax_raw.pcolormesh(pypdd.rawdata)
-            rect1 = patches.Rectangle((pypdd.xmin, pypdd.ymin), pypdd.xmax-pypdd.xmin, pypdd.ymax-pypdd.ymin, linewidth=2, edgecolor='r', facecolor='none')
-            ax_raw.set_xlim(0, pypdd.rawdata.shape[1])
-            ax_raw.set_ylim(0, pypdd.rawdata.shape[0])
-            ax_raw.add_patch(rect1)
+            pypdd.plot_raw(ax_raw, region = (xmin, xmax, ymin, ymax))
             self.layout.right.raw.draw()
 
 
@@ -242,14 +237,7 @@ class PPDDWindow(QMainWindow):
         newxmax = int(self.layout.left.up.xmax.text())
         newymin = int(self.layout.left.up.ymin.text())
         newymax = int(self.layout.left.up.ymax.text())
-
-        if not ((newxmin == pypdd.xmin) and (newymin == pypdd.ymin) and (newxmax == pypdd.xmax) and (newymax == pypdd.ymax)) :
-            #input has changed
-            pypdd.xmin = newxmin
-            pypdd.xmax = newxmax
-            pypdd.ymin = newymin
-            pypdd.ymax = newymax
-            pypdd.peak_fitted = False #bcause input has changed
+        pypdd.crop_region(newxmin, newxmax, newymin, newymax)
 
         pypdd.symin = int(self.layout.left.up.symin.text())
         pypdd.symax = int(self.layout.left.up.symax.text())
@@ -266,51 +254,34 @@ class PPDDWindow(QMainWindow):
 
         self.update_conf()
         pypdd = self.ppdd
-
         #plot raw data and selected region
         ax_raw = self.layout.right.raw.axes
-        ax_raw.set_title('Raw data')
-        im1 = ax_raw.pcolormesh(pypdd.rawdata)
-        rect1 = patches.Rectangle((pypdd.xmin, pypdd.ymin), pypdd.xmax-pypdd.xmin, pypdd.ymax-pypdd.ymin, linewidth=2, edgecolor='r', facecolor='none')
-        ax_raw.set_xlim(0, pypdd.rawdata.shape[1])
-        ax_raw.set_ylim(0, pypdd.rawdata.shape[0])
-        ax_raw.add_patch(rect1)
+        pypdd.plot_raw(ax_raw, region = (pypdd.xmin, pypdd.xmax, pypdd.ymin, pypdd.ymax))
         self.layout.right.raw.draw()
 
-        if not pypdd.peak_fitted :  #if already fitted peaks, skip to speed up
-            try :
-                pypdd.guess.fx = float(self.layout.left.down.fx.text())
-                pypdd.guess.fy = float(self.layout.left.down.fy.text())
-                pypdd.find_peaks()
-            except RuntimeError :
-                self.statusBar().showMessage('Failed to find the secondary peak. Please input fx and fy and run again.')
-                #plot amplitude spectrum without passbands
-                ax_spectrum = self.layout.right.spectrum.axes
-                XYf2d = np.fft.fftn(pypdd.xy2d)
-                XYf2d_shifted = np.abs(np.fft.fftshift(XYf2d))     
-                xfreq = np.fft.fftshift(np.fft.fftfreq(XYf2d_shifted.shape[1]))
-                yfreq = np.fft.fftshift(np.fft.fftfreq(XYf2d_shifted.shape[0]))
-                im3 = ax_spectrum.pcolormesh(xfreq, yfreq, XYf2d_shifted, vmax=self.spectrum_vmax)
-                ax_spectrum.set_xlim(-0.2,0.2)
-                ax_spectrum.set_ylim(-0.2,0.2)
-                self.layout.right.spectrum.draw()
-                return
+        #get fx and fy from input 
+        pypdd.guess.fx = float(self.layout.left.down.fx.text())
+        pypdd.guess.fy = float(self.layout.left.down.fy.text())
+        try :
+            pypdd.find_peaks()
+        except RuntimeError :
+            self.statusBar().showMessage('Failed to find the secondary peak. Please input fx and fy and run again.')
+            #plot amplitude spectrum without passbands
+            ax_spectrum = self.layout.right.spectrum.axes
+            pypdd.plot_amplitude(ax_spectrum)
+            self.layout.right.spectrum.draw()
+            return
 
+        #display fx and fy
         self.layout.left.down.fx.setText('{0:.4f}'.format(pypdd.fx))
         self.layout.left.down.fy.setText('{0:.4f}'.format(pypdd.fy))
                 
         #plot amplitude spectrum
         ax_spectrum = self.layout.right.spectrum.axes
-        XYf2d_shifted = pypdd.XYf2d_shifted
-        xfreq = np.fft.fftshift(np.fft.fftfreq(XYf2d_shifted.shape[1]))
-        yfreq = np.fft.fftshift(np.fft.fftfreq(XYf2d_shifted.shape[0]))
-        im3 = ax_spectrum.pcolormesh(xfreq, yfreq, XYf2d_shifted, vmax=self.spectrum_vmax)
-        ax_spectrum.set_xlim(-0.2,0.2)
-        ax_spectrum.set_ylim(-0.2,0.2)
-        rect3 = patches.Rectangle((pypdd.fx-pypdd.xband,-np.abs(pypdd.fy)-pypdd.yband), 2*pypdd.xband, 2*(pypdd.yband+np.abs(pypdd.fy)), linewidth=2, edgecolor='r', facecolor='none')
-        ax_spectrum.add_patch(rect3)
+        pypdd.plot_amplitude(ax_spectrum, bands=(pypdd.xband, pypdd.yband))
         self.layout.right.spectrum.draw()
 
+        #get phase spectrum
         pypdd.filt_move()
 
         #find the center of phase spectrum
@@ -320,22 +291,13 @@ class PPDDWindow(QMainWindow):
             self.statusBar().showMessage('Failed to find the symmetry axis.')
             #plot phase spectrum without center line
             ax_phase = self.layout.right.phase.axes
-            ax_phase.set_title('Phase spectrum')
-            im2 = ax_phase.pcolormesh(pypdd.phase)
-            plt.colorbar(im2, self.layout.right.phase.cax)
-            ax_phase.hlines(pypdd.symin, 0, pypdd.phase.shape[1], linewidth=2, colors='r')
-            ax_phase.hlines(pypdd.symax, 0, pypdd.phase.shape[1], linewidth=2, colors='r')
+            pypdd.plot_phase(ax_phase, self.layout.right.phase.cax, limits = (pypdd.symin, pypdd.symax))
             self.layout.right.phase.draw()
             return
 
         #plot phase spectrum
         ax_phase = self.layout.right.phase.axes
-        ax_phase.set_title('Phase spectrum')
-        im2 = ax_phase.pcolormesh(pypdd.phase)
-        plt.colorbar(im2, self.layout.right.phase.cax)
-        ax_phase.hlines(pypdd.symin, 0, pypdd.phase.shape[1], linewidth=2, colors='r')
-        ax_phase.hlines(pypdd.symax, 0, pypdd.phase.shape[1], linewidth=2, colors='r')
-        ax_phase.hlines(pypdd.ycenter, 0, pypdd.phase.shape[1], linewidth=3, colors='black')
+        pypdd.plot_phase(ax_phase, self.layout.right.phase.cax, limits = (pypdd.symin, pypdd.symax), symmetry = pypdd.ycenter)
         self.layout.right.phase.draw()
 
         #perform abel transform
@@ -347,11 +309,7 @@ class PPDDWindow(QMainWindow):
 
         #plot desnity (relative refractivity)
         ax_density = self.layout.right.density.axes
-        ax_density.set_title('Relative Refractivity')
-        im4 = ax_density.pcolormesh(pypdd.AIM, vmax=0.1, vmin=0)
-        ax_density.set_xlim(0, pypdd.AIM.shape[1])
-        ax_density.set_ylim(0, pypdd.AIM.shape[0])
-        plt.colorbar(im4, self.layout.right.density.cax)
+        pypdd.plot_density(ax_density,  self.layout.right.density.cax)
         self.layout.right.density.draw()
 
     def about(self):
