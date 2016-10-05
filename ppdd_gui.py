@@ -122,17 +122,25 @@ class PPDDWindow(QMainWindow):
         right.setLayout(right.grid)
         right.grid.setColumnStretch(0, 45)
         right.grid.setColumnStretch(1, 55)
+        right.grid.setRowStretch(0, 5)
+        right.grid.setRowStretch(1, 5)
 
         right.raw = MplCanvas()
         right.phase = MplCanvas()
         right.phase.cax, _ = colorbar.make_axes(right.phase.axes, fraction = 0.05,  pad = 0.01, aspect = 10)
         right.phase.cax.hold(False)
         right.phase.cax.tick_params(axis='both', which='both', bottom='off', labelbottom='off')
+        right.phase.detached.cax, _ = colorbar.make_axes(right.phase.detached.axes, fraction = 0.05,  pad = 0.01, aspect = 10)
+        right.phase.detached.cax.hold(False)
+        right.phase.detached.cax.tick_params(axis='both', which='both', bottom='off', labelbottom='off')
         right.spectrum = MplCanvas()
         right.density = MplCanvas()
         right.density.cax, _ = colorbar.make_axes(right.density.axes, fraction = 0.05,  pad = 0.01, aspect = 10)
         right.density.cax.hold(False)
         right.density.cax.tick_params(axis='both', which='both', bottom='off', labelbottom='off')
+        right.density.detached.cax, _ = colorbar.make_axes(right.density.detached.axes, fraction = 0.05,  pad = 0.01, aspect = 10)
+        right.density.detached.cax.hold(False)
+        right.density.detached.cax.tick_params(axis='both', which='both', bottom='off', labelbottom='off')
 
         right.grid.addWidget(right.raw, 0, 0)
         right.grid.addWidget(right.phase, 0, 1)
@@ -224,9 +232,11 @@ class PPDDWindow(QMainWindow):
             xmax = int(self.layout.left.up.xmax.text())
             ymin = int(self.layout.left.up.ymin.text())
             ymax = int(self.layout.left.up.ymax.text())
-            ax_raw = self.layout.right.raw.axes
-            pypdd.plot_raw(ax_raw, region = (xmin, xmax, ymin, ymax))
-            self.layout.right.raw.draw()
+            figure = self.layout.right.raw
+            pypdd.plot_raw(figure.axes, region = (xmin, xmax, ymin, ymax))
+            pypdd.plot_raw(figure.detached.axes, region = (xmin, xmax, ymin, ymax))
+            figure.draw()
+            figure.detached.draw()
 
 
     def update_conf(self):
@@ -255,9 +265,11 @@ class PPDDWindow(QMainWindow):
         self.update_conf()
         pypdd = self.ppdd
         #plot raw data and selected region
-        ax_raw = self.layout.right.raw.axes
-        pypdd.plot_raw(ax_raw, region = (pypdd.xmin, pypdd.xmax, pypdd.ymin, pypdd.ymax))
-        self.layout.right.raw.draw()
+        figure = self.layout.right.raw
+        pypdd.plot_raw(figure.axes, region = (pypdd.xmin, pypdd.xmax, pypdd.ymin, pypdd.ymax))
+        pypdd.plot_raw(figure.detached.axes, region = (pypdd.xmin, pypdd.xmax, pypdd.ymin, pypdd.ymax))
+        figure.draw()
+        figure.detached.draw()
 
         #get fx and fy from input 
         pypdd.guess.fx = float(self.layout.left.down.fx.text())
@@ -267,9 +279,11 @@ class PPDDWindow(QMainWindow):
         except RuntimeError :
             self.statusBar().showMessage('Failed to find the secondary peak. Please input fx and fy and run again.')
             #plot amplitude spectrum without passbands
-            ax_spectrum = self.layout.right.spectrum.axes
-            pypdd.plot_amplitude(ax_spectrum)
-            self.layout.right.spectrum.draw()
+            figure = self.layout.right.spectrum
+            pypdd.plot_amplitude(figure.axes)
+            pypdd.plot_amplitude(figure.detached.axes)
+            figure.draw()
+            figure.detached.draw()
             return
 
         #display fx and fy
@@ -277,9 +291,11 @@ class PPDDWindow(QMainWindow):
         self.layout.left.down.fy.setText('{0:.4f}'.format(pypdd.fy))
                 
         #plot amplitude spectrum
-        ax_spectrum = self.layout.right.spectrum.axes
-        pypdd.plot_amplitude(ax_spectrum, bands=(pypdd.xband, pypdd.yband))
-        self.layout.right.spectrum.draw()
+        figure = self.layout.right.spectrum
+        pypdd.plot_amplitude(figure.axes, bands=(pypdd.xband, pypdd.yband))
+        pypdd.plot_amplitude(figure.detached.axes, bands=(pypdd.xband, pypdd.yband))
+        figure.draw()
+        figure.detached.draw()
 
         #get phase spectrum
         pypdd.filt_move()
@@ -290,15 +306,19 @@ class PPDDWindow(QMainWindow):
         except RuntimeError :       #currently not possible because find_symmetry_axis always give a center in [ymin, ymax]
             self.statusBar().showMessage('Failed to find the symmetry axis.')
             #plot phase spectrum without center line
-            ax_phase = self.layout.right.phase.axes
-            pypdd.plot_phase(ax_phase, self.layout.right.phase.cax, limits = (pypdd.symin, pypdd.symax))
-            self.layout.right.phase.draw()
+            figure = self.layout.right.phase
+            pypdd.plot_phase(figure.axes, figure.cax, limits = (pypdd.symin, pypdd.symax))
+            pypdd.plot_phase(figure.detached.axes, figure.detached.cax, limits = (pypdd.symin, pypdd.symax))
+            figure.draw()
+            figure.detached.draw()
             return
 
         #plot phase spectrum
-        ax_phase = self.layout.right.phase.axes
-        pypdd.plot_phase(ax_phase, self.layout.right.phase.cax, limits = (pypdd.symin, pypdd.symax), symmetry = pypdd.ycenter)
-        self.layout.right.phase.draw()
+        figure = self.layout.right.phase
+        pypdd.plot_phase(figure.axes, figure.cax, limits = (pypdd.symin, pypdd.symax), symmetry = pypdd.ycenter)
+        pypdd.plot_phase(figure.detached.axes, figure.detached.cax, limits = (pypdd.symin, pypdd.symax), symmetry = pypdd.ycenter)
+        figure.draw()
+        figure.detached.draw()
 
         #perform abel transform
         try :
@@ -308,9 +328,11 @@ class PPDDWindow(QMainWindow):
             return
 
         #plot desnity (relative refractivity)
-        ax_density = self.layout.right.density.axes
-        pypdd.plot_density(ax_density,  self.layout.right.density.cax)
-        self.layout.right.density.draw()
+        figure = self.layout.right.density
+        pypdd.plot_density(figure.axes, figure.cax)
+        pypdd.plot_density(figure.detached.axes, figure.detached.cax)
+        figure.draw()
+        figure.detached.draw()
 
     def about(self):
         QMessageBox.about(self, "About", """
@@ -327,21 +349,41 @@ class MplCanvas(FigureCanvas):
     """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
 
     def __init__(self, parent=None, width=5, height=4, dpi=100):
-        fig = Figure(figsize=(width, height), dpi=dpi)
-        self.axes = fig.add_subplot(111)
+        self.fig = Figure(figsize=(width, height), dpi=dpi)
+        self.axes = self.fig.add_subplot(111)
         # We want the axes cleared every time plot() is called
         self.axes.hold(False)
 
-        FigureCanvas.__init__(self, fig)
+        FigureCanvas.__init__(self, self.fig)
         self.setParent(parent)
 
         FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
 
+        self.detached = DetachedCanvas()
+
     def mousePressEvent(self, event):
-        error = QErrorMessage(self)
-        error.showMessage('Clicked!')
-        error.exec_() 
+        #toggle show/hide
+        if self.detached.isVisible() :
+            self.detached.hide()
+        else :
+            self.detached.show()
+
+class DetachedCanvas(FigureCanvas):
+    """A detached canvas used to show enlarged plots, and save individual plots."""
+
+    def __init__(self, parent=None):
+        self.fig = Figure()
+        self.axes = self.fig.add_subplot(111)
+        # We want the axes cleared every time plot() is called
+        self.axes.hold(False)
+
+        FigureCanvas.__init__(self, self.fig)
+        self.setParent(parent)
+
+        FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
+        FigureCanvas.updateGeometry(self)
+
 
 
 
