@@ -7,7 +7,7 @@ import matplotlib
 matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from matplotlib import pyplot as plt, patches, colorbar
+from matplotlib import colorbar
 import numpy as np
 
 import ppdd

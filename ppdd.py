@@ -4,7 +4,7 @@ import numpy as np
 from scipy import signal
 import cunwrap
 import abel
-from matplotlib import pyplot as plt, patches, colorbar
+from matplotlib import pyplot as plt, patches
 
 import fittools
 
