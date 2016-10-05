@@ -1,8 +1,7 @@
 import sys
-from PyQt5.QtWidgets import (QMainWindow, QWidget, QTextEdit, QAction, QApplication,
-                            QMessageBox, QGridLayout, QPushButton, QFileDialog, QErrorMessage,
-                            QSizePolicy, QLabel, QLineEdit, QComboBox)
-from PyQt5.QtGui import QIcon, QDoubleValidator, QIntValidator
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+
 import matplotlib
 # Make sure that we are using QT5
 matplotlib.use('Qt5Agg')
@@ -324,6 +323,8 @@ class PPDDWindow(QMainWindow):
             ax_phase.set_title('Phase spectrum')
             im2 = ax_phase.pcolormesh(pypdd.phase)
             plt.colorbar(im2, self.layout.right.phase.cax)
+            ax_phase.hlines(pypdd.symin, 0, pypdd.phase.shape[1], linewidth=2, colors='r')
+            ax_phase.hlines(pypdd.symax, 0, pypdd.phase.shape[1], linewidth=2, colors='r')
             self.layout.right.phase.draw()
             return
 
@@ -332,6 +333,8 @@ class PPDDWindow(QMainWindow):
         ax_phase.set_title('Phase spectrum')
         im2 = ax_phase.pcolormesh(pypdd.phase)
         plt.colorbar(im2, self.layout.right.phase.cax)
+        ax_phase.hlines(pypdd.symin, 0, pypdd.phase.shape[1], linewidth=2, colors='r')
+        ax_phase.hlines(pypdd.symax, 0, pypdd.phase.shape[1], linewidth=2, colors='r')
         ax_phase.hlines(pypdd.ycenter, 0, pypdd.phase.shape[1], linewidth=3, colors='black')
         self.layout.right.phase.draw()
 
@@ -348,7 +351,7 @@ class PPDDWindow(QMainWindow):
         im4 = ax_density.pcolormesh(pypdd.AIM, vmax=0.1, vmin=0)
         ax_density.set_xlim(0, pypdd.AIM.shape[1])
         ax_density.set_ylim(0, pypdd.AIM.shape[0])
-        plt.colorbar(im2, self.layout.right.density.cax)
+        plt.colorbar(im4, self.layout.right.density.cax)
         self.layout.right.density.draw()
 
     def about(self):
@@ -376,6 +379,12 @@ class MplCanvas(FigureCanvas):
 
         FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
+
+    def mousePressEvent(self, event):
+        error = QErrorMessage(self)
+        error.showMessage('Clicked!')
+        error.exec_() 
+
 
 
 if __name__ == '__main__':
