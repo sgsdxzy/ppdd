@@ -18,6 +18,7 @@ class PPDDWindow(QMainWindow):
         super().__init__()
         self.filename = ''
         self.ppdd = ppdd.PPDD()
+        self.batch = batchRunWindow(self)
         self.method_dict = {
             "Hansen-Law": "hansenlaw",
             "Onion-bordas": "onion_bordas",
@@ -176,7 +177,6 @@ class PPDDWindow(QMainWindow):
         layout.left.down.yband.setText('{0:.3f}'.format(pypdd.yband))
         layout.left.down.learning.setChecked(pypdd.learning)
 
-
         openFile = QAction(QIcon.fromTheme('document-open'), 'Open', self)
         openFile.setShortcut('Ctrl+O')
         openFile.setStatusTip('Open file')
@@ -187,8 +187,6 @@ class PPDDWindow(QMainWindow):
         run.setStatusTip('Run ppdd')
         run.triggered.connect(self.runPPDD)
 
-        #TODO batch-run
-
         saveFile = QAction(QIcon.fromTheme('document-save'), 'Save', self)
         saveFile.setShortcut('Ctrl+S')
         saveFile.setStatusTip('Save file')
@@ -198,6 +196,11 @@ class PPDDWindow(QMainWindow):
         saveFileAs.setShortcut('Ctrl+D')
         saveFileAs.setStatusTip('Save file As')
         saveFileAs.triggered.connect(self.saveFileAs)
+
+        batchRun = QAction(QIcon.fromTheme('media-seek-forward'), 'Batch run', self)
+        batchRun.setShortcut('Ctrl+B')
+        batchRun.setStatusTip('Batch run')
+        batchRun.triggered.connect(self.batchRun)
 
         exitAction = QAction(QIcon.fromTheme('application-exit'), 'Exit', self)
         exitAction.setShortcut('Ctrl+Q')
@@ -216,6 +219,7 @@ class PPDDWindow(QMainWindow):
         fileMenu.addAction(run)
         fileMenu.addAction(saveFile)
         fileMenu.addAction(saveFileAs)
+        fileMenu.addAction(batchRun)
         fileMenu.addAction(exitAction)
         helpMenu = menubar.addMenu('&Help')
         helpMenu.addAction(aboutAction)
@@ -228,6 +232,8 @@ class PPDDWindow(QMainWindow):
         toolbar.addAction(saveFile)
         toolbar = self.addToolBar('Save as')
         toolbar.addAction(saveFileAs)
+        toolbar = self.addToolBar('Batch run')
+        toolbar.addAction(batchRun)
         toolbar = self.addToolBar('Exit')
         toolbar.addAction(exitAction)
 
@@ -278,7 +284,7 @@ class PPDDWindow(QMainWindow):
         outputpath = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'output')
         os.makedirs(outputpath, exist_ok=True)
         outputfile = os.path.join(outputpath, os.path.basename(self.filename).rsplit('.', 1)[0]+'.txt')
-        np.savetxt(outputfile, self.ppdd.AIM, fmt = '%1.4f', newline = os.linesep)
+        np.savetxt(outputfile, self.ppdd.AIM, fmt = '%1.6f', newline = os.linesep)
         self.statusBar().showMessage('Successfully saved file: {0}'.format(outputfile))
 
     def saveFileAs(self):
@@ -295,8 +301,15 @@ class PPDDWindow(QMainWindow):
             #make sure the result is what user wants
             self.runPPDD()
 
-            np.savetxt(filenames[0], self.ppdd.AIM, fmt = '%1.4f', newline = os.linesep)
+            np.savetxt(filenames[0], self.ppdd.AIM, fmt = '%1.6f', newline = os.linesep)
             self.statusBar().showMessage('Successfully saved file: {0}'.format(filenames[0]))
+
+    def batchRun(self):
+        #toggle show/hide
+        if self.batch.isVisible() :
+            self.batch.hide()
+        else :
+            self.batch.show()
 
     def update_conf(self):
         #TODO validate inputs
@@ -403,7 +416,6 @@ class PPDDWindow(QMainWindow):
             self.statusBar().showMessage(str(e))
             raise
 
-
     def about(self):
         QMessageBox.about(self, "About", """
         Python Plasma Density Diagnostics (PPDD) is an automatic and self-learning program to perform spectrum analysis and backward abel transform to get the plasma density distribution out of interferometric images, based on numpy, scipy and qt.
@@ -413,6 +425,112 @@ class PPDDWindow(QMainWindow):
         State Key Laboratory of Nuclear Physics and Technology, and Key Laboratory of HEDP of the Ministry
 of Education, CAPT, Peking University, Beijing 100871, China
         """)
+
+
+class batchRunWindow(QWidget):
+    """A new windows used to dsiplay batch run status"""
+
+    def __init__(self, mainWindow):
+        super().__init__()
+        self.mainWindow = mainWindow
+        self.initUI()
+        
+    def initUI(self): 
+        self.setGeometry(300, 300, 800, 600)
+        self.setWindowTitle('Batch run') 
+
+        self.grid = QGridLayout()
+        self.setLayout(self.grid)
+
+        self.toolbar = QToolBar("Batch run", self)
+
+        openFiles = QAction(QIcon.fromTheme('document-open'), 'Open files', self)
+        openFiles.setShortcut('Ctrl+O')
+        openFiles.setStatusTip('Open files')
+        openFiles.triggered.connect(self.loadFilesDialog)
+
+        run = QAction(QIcon.fromTheme('media-seek-forward'), 'Batch run', self)
+        run.setShortcut('Ctrl+R')
+        run.setStatusTip('Batch run')
+        run.triggered.connect(self.run)
+
+        self.toolbar.addAction(openFiles)
+        self.toolbar.addAction(run)
+        self.grid.addWidget(self.toolbar, 0, 0)
+
+        self.progress = QProgressBar(self)
+        self.grid.addWidget(self.progress, 1, 0)
+
+        #create a canvas for showing a snapshot of the result of current file
+        self.fig = Figure()
+        self.axes = self.fig.add_subplot(111)
+        self.axes.hold(False)
+        self.cax, _ = colorbar.make_axes(self.axes, fraction = 0.05,  pad = 0.01, aspect = 10)
+        self.cax.hold(False)
+        self.cax.tick_params(axis='both', which='both', bottom='off', labelbottom='off')
+        self.canvas = FigureCanvas(self.fig)
+        self.canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.canvas.updateGeometry()
+        self.grid.addWidget(self.canvas, 2, 0)
+
+        self.status = QStatusBar(self)
+        self.grid.addWidget(self.status, 3, 0)
+
+        self.grid.setRowStretch(0, 0)
+        self.grid.setRowStretch(1, 0)
+        self.grid.setRowStretch(3, 0)
+
+        self.status.showMessage('Ready.')
+
+    def loadFilesDialog(self):
+        filenames = QFileDialog.getOpenFileNames(self, 'Open files', '', 'Data file (*.txt);;Any file (*)', None, QFileDialog.DontUseNativeDialog)
+        if filenames[0]:
+            self.status.showMessage('Selected {0} file(s): {1}...'.format(len(filenames[0]), filenames[0][0]))
+            self.filenames = filenames[0]
+
+    def run(self):
+        if not self.filenames :
+            self.status.showMessage('No file is selected, please select data files first!')
+            return
+
+        self.mainWindow.update_conf()
+        outputpath = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'output')
+        os.makedirs(outputpath, exist_ok=True)
+        total = len(self.filenames)
+        success = 0
+        fail = 0
+        self.progress.setMinimum(0)
+        self.progress.setMaximum(total)
+        pypdd = self.mainWindow.ppdd
+
+        #batch run
+        failed_files = []
+        for f in self.filenames:
+            self.progress.setValue(success + fail + 1)
+            try :
+                pypdd.readfile(f)
+                pypdd.find_peaks()
+                pypdd.filt_move()
+                pypdd.find_symmetry_axis()
+                pypdd.abel()
+                pypdd.plot_density(self.axes, self.cax)
+
+                outputfile = os.path.join(outputpath, os.path.basename(f).rsplit('.', 1)[0]+'.txt')
+                np.savetxt(outputfile, pypdd.AIM, fmt = '%1.6f', newline = os.linesep)
+                self.status.showMessage('Successfully saved file: {0}'.format(outputfile))
+                success += 1
+            except :
+                failed_files.append(f)
+                fail += 1
+                continue
+
+        self.status.showMessage('Total number of files: {0}, success number of files: {1}.'.format(total, success))
+
+        if failed_files : 
+            error = QErrorMessage(self)
+            failed_str = os.linesep.join(failed_files)
+            error.showMessage('Failed to analyze the following {0} file(s): {1}{2}'.format(fail, os.linesep, failed_str))
+            error.exec_() 
 
 
 class MplCanvas(FigureCanvas):
