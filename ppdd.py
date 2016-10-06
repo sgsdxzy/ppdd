@@ -13,7 +13,6 @@ class PPDD(object):
     Python Plasma Density Diagnostics(PPDD) is the main class to read input data, perform abel transfrom and output transfrom result.
     A run should consists of methods in the following order:
     readfile
-    crop_region
     find_peaks
     filt_move
     find_symmetry_axis
@@ -45,27 +44,17 @@ class PPDD(object):
         self.rawdata = np.loadtxt(filename, dtype=int)
         self.peak_fitted = False
 
-    def crop_region(self, xmin, xmax, ymin, ymax):
-        """
-        Crop the desired region from rawdata.
-        """
-        if not ((xmin == self.xmin) and (ymin == self.ymin) and (xmax == self.xmax) and (ymax == self.ymax)) :
-            #region has changed
-            self.xmin = xmin
-            self.xmax = xmax
-            self.ymin = ymin
-            self.ymax = ymax
-            self.peak_fitted = False #bcause input has changed
-        self.xy2d = self.rawdata[self.ymin:self.ymax, self.xmin:self.xmax]
-        #create the shifted amplitude spectrum to fit
-        XYf2d = np.fft.fftn(self.xy2d)
-        self.XYf2d_shifted = np.abs(np.fft.fftshift(XYf2d))                #shift frequency of (0,0) to the center
-
     def find_peaks(self):
         """
-        Find the three peaks in the frequency spectrum. 
+        Find the three peaks in the frequency spectrum. This procedure includes cropping the appropriate region.
         """
         if not self.peak_fitted :  #if already fitted peaks, skip to speed up
+            #loaded new file or region has changed
+            self.xy2d = self.rawdata[self.ymin:self.ymax, self.xmin:self.xmax]
+            #create the shifted amplitude spectrum to fit
+            XYf2d = np.fft.fftn(self.xy2d)
+            self.XYf2d_shifted = np.abs(np.fft.fftshift(XYf2d))                #shift frequency of (0,0) to the center
+
             #try hot start
             try :
                 self.find_peaks_hot_start()

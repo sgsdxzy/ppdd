@@ -214,6 +214,7 @@ class PPDDWindow(QMainWindow):
     def loadFileDialog(self):
         filenames = QFileDialog.getOpenFileName(self, 'Open file', '', 'Data file (*.txt)', None, QFileDialog.DontUseNativeDialog)
         if filenames[0]:
+            self.update_conf()
             pypdd = self.ppdd
             try :
                 pypdd.readfile(filenames[0])
@@ -228,13 +229,9 @@ class PPDDWindow(QMainWindow):
             self.statusBar().showMessage('Scucessfully read file: {0}'.format(filenames[0]))
 
             #plot raw data and selected region
-            xmin = int(self.layout.left.up.xmin.text())
-            xmax = int(self.layout.left.up.xmax.text())
-            ymin = int(self.layout.left.up.ymin.text())
-            ymax = int(self.layout.left.up.ymax.text())
             figure = self.layout.right.raw
-            pypdd.plot_raw(figure.axes, region = (xmin, xmax, ymin, ymax))
-            pypdd.plot_raw(figure.detached.axes, region = (xmin, xmax, ymin, ymax))
+            pypdd.plot_raw(figure.axes, region = (pypdd.xmin, pypdd.xmax, pypdd.ymin, pypdd.ymax))
+            pypdd.plot_raw(figure.detached.axes, region = (pypdd.xmin, pypdd.xmax, pypdd.ymin, pypdd.ymax))
             figure.draw()
             figure.detached.draw()
 
@@ -243,11 +240,17 @@ class PPDDWindow(QMainWindow):
         #TODO validate inputs
 
         pypdd = self.ppdd
-        newxmin = int(self.layout.left.up.xmin.text())
-        newxmax = int(self.layout.left.up.xmax.text())
-        newymin = int(self.layout.left.up.ymin.text())
-        newymax = int(self.layout.left.up.ymax.text())
-        pypdd.crop_region(newxmin, newxmax, newymin, newymax)
+        xmin = int(self.layout.left.up.xmin.text())
+        xmax = int(self.layout.left.up.xmax.text())
+        ymin = int(self.layout.left.up.ymin.text())
+        ymax = int(self.layout.left.up.ymax.text())
+        if not ((xmin == pypdd.xmin) and (ymin == pypdd.ymin) and (xmax == pypdd.xmax) and (ymax == pypdd.ymax)) :
+            #region has changed
+            pypdd.xmin = xmin
+            pypdd.xmax = xmax
+            pypdd.ymin = ymin
+            pypdd.ymax = ymax
+            pypdd.peak_fitted = False #bcause input has changed
 
         pypdd.symin = int(self.layout.left.up.symin.text())
         pypdd.symax = int(self.layout.left.up.symax.text())
