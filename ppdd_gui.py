@@ -433,10 +433,12 @@ class batchRunWindow(QWidget):
     def __init__(self, mainWindow):
         super().__init__()
         self.mainWindow = mainWindow
+        self._generator = None
+        self._timerId = None
         self.initUI()
         
     def initUI(self): 
-        self.setGeometry(300, 300, 800, 600)
+        self.setGeometry(300, 300, 800, 0)
         self.setWindowTitle('Batch run') 
 
         self.grid = QGridLayout()
@@ -452,33 +454,27 @@ class batchRunWindow(QWidget):
         run = QAction(QIcon.fromTheme('media-seek-forward'), 'Batch run', self)
         run.setShortcut('Ctrl+R')
         run.setStatusTip('Batch run')
-        run.triggered.connect(self.run)
+        run.triggered.connect(self.start)
+
+        stop = QAction(QIcon.fromTheme('process-stop'), 'Stop', self)
+        stop.setShortcut('Ctrl+P')
+        stop.setStatusTip('Stop')
+        stop.triggered.connect(self.stop)
 
         self.toolbar.addAction(openFiles)
         self.toolbar.addAction(run)
+        self.toolbar.addAction(stop)
         self.grid.addWidget(self.toolbar, 0, 0)
 
         self.progress = QProgressBar(self)
         self.grid.addWidget(self.progress, 1, 0)
 
-        #create a canvas for showing a snapshot of the result of current file
-        self.fig = Figure()
-        self.axes = self.fig.add_subplot(111)
-        self.axes.hold(False)
-        self.cax, _ = colorbar.make_axes(self.axes, fraction = 0.05,  pad = 0.01, aspect = 10)
-        self.cax.hold(False)
-        self.cax.tick_params(axis='both', which='both', bottom='off', labelbottom='off')
-        self.canvas = FigureCanvas(self.fig)
-        self.canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.canvas.updateGeometry()
-        self.grid.addWidget(self.canvas, 2, 0)
-
         self.status = QStatusBar(self)
-        self.grid.addWidget(self.status, 3, 0)
+        self.grid.addWidget(self.status, 2, 0)
 
         self.grid.setRowStretch(0, 0)
         self.grid.setRowStretch(1, 0)
-        self.grid.setRowStretch(3, 0)
+        self.grid.setRowStretch(2, 0)
 
         self.status.showMessage('Ready.')
 
@@ -488,49 +484,67 @@ class batchRunWindow(QWidget):
             self.status.showMessage('Selected {0} file(s): {1}...'.format(len(filenames[0]), filenames[0][0]))
             self.filenames = filenames[0]
 
-    def run(self):
-        if not self.filenames :
-            self.status.showMessage('No file is selected, please select data files first!')
-            return
-
-        self.mainWindow.update_conf()
-        outputpath = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'output')
-        os.makedirs(outputpath, exist_ok=True)
-        total = len(self.filenames)
-        success = 0
-        fail = 0
-        self.progress.setMinimum(0)
-        self.progress.setMaximum(total)
+    def loopGenerator(self):
+        # Put the code of your loop here
         pypdd = self.mainWindow.ppdd
-
-        #batch run
-        failed_files = []
         for f in self.filenames:
-            self.progress.setValue(success + fail + 1)
+            self.progress.setValue(self.success + self.fail + 1)
             try :
                 pypdd.readfile(f)
                 pypdd.find_peaks()
                 pypdd.filt_move()
                 pypdd.find_symmetry_axis()
                 pypdd.abel()
-                pypdd.plot_density(self.axes, self.cax)
 
-                outputfile = os.path.join(outputpath, os.path.basename(f).rsplit('.', 1)[0]+'.txt')
+                outputfile = os.path.join(self.outputpath, os.path.basename(f).rsplit('.', 1)[0]+'.txt')
                 np.savetxt(outputfile, pypdd.AIM, fmt = '%1.6f', newline = os.linesep)
                 self.status.showMessage('Successfully saved file: {0}'.format(outputfile))
-                success += 1
+                self.success += 1
             except :
-                failed_files.append(f)
-                fail += 1
-                continue
+                self.failed_files.append(f)
+                self.fail += 1
+            yield
 
-        self.status.showMessage('Total number of files: {0}, success number of files: {1}.'.format(total, success))
+    def start(self):  # Connect to Start-button clicked()
+        if not self.filenames :
+            self.status.showMessage('No file is selected, please select data files first!')
+            return
 
-        if failed_files : 
-            error = QErrorMessage(self)
-            failed_str = os.linesep.join(failed_files)
-            error.showMessage('Failed to analyze the following {0} file(s): {1}{2}'.format(fail, os.linesep, failed_str))
-            error.exec_() 
+        self.mainWindow.update_conf()
+        self.outputpath = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'output')
+        os.makedirs(self.outputpath, exist_ok=True)
+        self.total = len(self.filenames)
+        self.success = 0
+        self.fail = 0
+        self.progress.setMinimum(0)
+        self.progress.setMaximum(self.total)
+        self.failed_files = []
+
+        self.stop()  # Stop any existing timer
+        self._generator = self.loopGenerator()  # Start the loop
+        self._timerId = self.startTimer(0)   # This is the idle timer
+
+    def stop(self):  # Connect to Stop-button clicked()
+        if self._timerId is not None:
+            self.killTimer(self._timerId)
+            self.status.showMessage('Total number of processed files: {0}, success number of files: {1}.'.format(self.success + self.fail, self.success))
+            if self.failed_files : 
+                error = QErrorMessage(self)
+                failed_str = os.linesep.join(self.failed_files)
+                error.showMessage('Failed to analyze the following {0} file(s): {1}{2}'.format(self.fail, os.linesep, failed_str))
+                error.exec_() 
+
+        self._generator = None
+        self._timerId = None
+
+    def timerEvent(self, event):
+        # This is called every time the GUI is idle.
+        if self._generator is None:
+            return
+        try :
+            next(self._generator)  # Run the next iteration
+        except StopIteration:
+            self.stop()  # Iteration has finshed, kill the timer
 
 
 class MplCanvas(FigureCanvas):
