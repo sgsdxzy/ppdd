@@ -177,37 +177,37 @@ class PPDDWindow(QMainWindow):
         layout.left.down.yband.setText('{0:.3f}'.format(pypdd.yband))
         layout.left.down.learning.setChecked(pypdd.learning)
 
-        openFile = QAction(QIcon.fromTheme('document-open'), 'Open', self)
+        openFile = QAction(QIcon('document-open'), 'Open', self)
         openFile.setShortcut('Ctrl+O')
         openFile.setStatusTip('Open file')
         openFile.triggered.connect(self.loadFileDialog)
 
-        run = QAction(QIcon.fromTheme('media-playback-start'), 'Run', self)
+        run = QAction(QIcon('media-playback-start'), 'Run', self)
         run.setShortcut('Ctrl+R')
         run.setStatusTip('Run ppdd')
         run.triggered.connect(self.runPPDD)
 
-        saveFile = QAction(QIcon.fromTheme('document-save'), 'Save', self)
+        saveFile = QAction(QIcon('document-save'), 'Save', self)
         saveFile.setShortcut('Ctrl+S')
         saveFile.setStatusTip('Save file')
         saveFile.triggered.connect(self.saveFile)
 
-        saveFileAs = QAction(QIcon.fromTheme('document-save-as'), 'Save as', self)
+        saveFileAs = QAction(QIcon('document-save-as'), 'Save as', self)
         saveFileAs.setShortcut('Ctrl+D')
         saveFileAs.setStatusTip('Save file As')
         saveFileAs.triggered.connect(self.saveFileAs)
 
-        batchRun = QAction(QIcon.fromTheme('media-seek-forward'), 'Batch run', self)
+        batchRun = QAction(QIcon('media-seek-forward'), 'Batch run', self)
         batchRun.setShortcut('Ctrl+B')
         batchRun.setStatusTip('Batch run')
         batchRun.triggered.connect(self.batchRun)
 
-        exitAction = QAction(QIcon.fromTheme('application-exit'), 'Exit', self)
+        exitAction = QAction(QIcon('application-exit'), 'Exit', self)
         exitAction.setShortcut('Ctrl+Q')
         exitAction.setStatusTip('Exit application')
         exitAction.triggered.connect(self.close)
 
-        aboutAction = QAction(QIcon.fromTheme('help-about'), 'About', self)
+        aboutAction = QAction(QIcon('help-about'), 'About', self)
         aboutAction.setStatusTip('About ppdd')
         aboutAction.triggered.connect(self.about)
 
@@ -446,17 +446,17 @@ class batchRunWindow(QWidget):
 
         self.toolbar = QToolBar("Batch run", self)
 
-        openFiles = QAction(QIcon.fromTheme('document-open'), 'Open files', self)
+        openFiles = QAction(QIcon('document-open'), 'Open files', self)
         openFiles.setShortcut('Ctrl+O')
         openFiles.setStatusTip('Open files')
         openFiles.triggered.connect(self.loadFilesDialog)
 
-        run = QAction(QIcon.fromTheme('media-seek-forward'), 'Batch run', self)
+        run = QAction(QIcon('media-seek-forward'), 'Batch run', self)
         run.setShortcut('Ctrl+R')
         run.setStatusTip('Batch run')
         run.triggered.connect(self.start)
 
-        stop = QAction(QIcon.fromTheme('process-stop'), 'Stop', self)
+        stop = QAction(QIcon('process-stop'), 'Stop', self)
         stop.setShortcut('Ctrl+P')
         stop.setStatusTip('Stop')
         stop.triggered.connect(self.stop)
@@ -592,7 +592,7 @@ class DetachedCanvas(QWidget):
 
         self.toolbar = QToolBar("Tools", self)
 
-        saveAs = QAction(QIcon.fromTheme('document-save-as'), 'Save as', self)
+        saveAs = QAction(QIcon('document-save-as'), 'Save as', self)
         saveAs.setShortcut('Ctrl+S')
         saveAs.setStatusTip('Save figure As')
         saveAs.triggered.connect(self.saveFigureAs)
