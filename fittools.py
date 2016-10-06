@@ -16,6 +16,13 @@ class Guess(object):
         self.fx = fx
         self.fy = fy
 
+def find_nearest(array, value):
+    """
+    Find the index of nearest element in array to value.
+    """
+    idx = (np.abs(array-value)).argmin()
+    return idx
+
 def gaussian(x, a, mu, sigma, c):
     """
     Gaussian function
@@ -145,6 +152,19 @@ def find_symmetry_axis(phase, ymin, ymax):
     #find_center_by_convolution always succeeds
     center = find_center_by_convolution(phase, ymin, ymax)
     return center
+
+def three_peaks_1d(x, a0, x0, sigma_x0, a1, x1, sigma_x1, offset):
+    """
+    The 1D fitting function for fitting three peaks in projection on x axis.
+    """
+    peak0 = gaussian(x, a0, x0, sigma_x0, 0)
+    peak1 = gaussian(x, a1, x1, sigma_x1, 0)
+    peakm1 = gaussian(x, a1, 2*x0-x1, sigma_x1, 0)
+    return peak0 + peak1 + peakm1 + offset
+
+def find_peaks_1d(x, a0, x0, sigma_x0, a1, x1, sigma_x1, offset):
+    popt,_ = curve_fit(three_peaks_1d, np.arange(x.shape[0]), x, p0 = (a0, x0, sigma_x0, a1, x1, sigma_x1, offset))
+    return popt
 
 def three_peaks(xy_tuple, a0, x0, y0, sigma_x0, sigma_y0, a1, x1, y1, sigma_x1, sigma_y1, offset):
     """
