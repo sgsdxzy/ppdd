@@ -1,4 +1,5 @@
 import sys
+import os
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 
@@ -163,7 +164,7 @@ class PPDDWindow(QMainWindow):
 
         openFile = QAction(QIcon.fromTheme('document-open'), 'Open', self)
         openFile.setShortcut('Ctrl+O')
-        openFile.setStatusTip('Open File')
+        openFile.setStatusTip('Open file')
         openFile.triggered.connect(self.loadFileDialog)
 
         run = QAction(QIcon.fromTheme('media-playback-start'), 'Run', self)
@@ -171,7 +172,17 @@ class PPDDWindow(QMainWindow):
         run.setStatusTip('Run ppdd')
         run.triggered.connect(self.runPPDD)
 
-        #TODO batch-run
+        #TODO batch-run and save as
+
+        saveFile = QAction(QIcon.fromTheme('document-save'), 'Save', self)
+        saveFile.setShortcut('Ctrl+S')
+        saveFile.setStatusTip('Save file')
+        saveFile.triggered.connect(self.saveFile)
+
+        saveFileAs = QAction(QIcon.fromTheme('document-save-as'), 'Save as', self)
+        saveFileAs.setShortcut('Ctrl+D')
+        saveFileAs.setStatusTip('Save file As')
+        saveFileAs.triggered.connect(self.saveFileAs)
 
         exitAction = QAction(QIcon.fromTheme('application-exit'), 'Exit', self)
         exitAction.setShortcut('Ctrl+Q')
@@ -188,6 +199,8 @@ class PPDDWindow(QMainWindow):
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(openFile)
         fileMenu.addAction(run)
+        fileMenu.addAction(saveFile)
+        fileMenu.addAction(saveFileAs)
         fileMenu.addAction(exitAction)
         helpMenu = menubar.addMenu('&Help')
         helpMenu.addAction(aboutAction)
@@ -196,6 +209,10 @@ class PPDDWindow(QMainWindow):
         toolbar.addAction(openFile)
         toolbar = self.addToolBar('Run')
         toolbar.addAction(run)
+        toolbar = self.addToolBar('Save')
+        toolbar.addAction(saveFile)
+        toolbar = self.addToolBar('Save as')
+        toolbar.addAction(saveFileAs)
         toolbar = self.addToolBar('Exit')
         toolbar.addAction(exitAction)
 
@@ -212,7 +229,7 @@ class PPDDWindow(QMainWindow):
             event.ignore()        
 
     def loadFileDialog(self):
-        filenames = QFileDialog.getOpenFileName(self, 'Open file', '', 'Data file (*.txt)', None, QFileDialog.DontUseNativeDialog)
+        filenames = QFileDialog.getOpenFileName(self, 'Open file', '', 'Data file (*.txt);;Any file (*)', None, QFileDialog.DontUseNativeDialog)
         if filenames[0]:
             self.update_conf()
             pypdd = self.ppdd
@@ -235,6 +252,36 @@ class PPDDWindow(QMainWindow):
             figure.draw()
             figure.detached.draw()
 
+    def saveFile(self):
+        if not self.filename :      #check if a file is loaded
+            self.statusBar().showMessage('No file is loaded, please load data file first!')
+            return
+        
+        #make sure the result is what user wants
+        self.runPPDD()
+
+        outputpath = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'output')
+        os.makedirs(outputpath, exist_ok=True)
+        outputfile = os.path.join(outputpath, os.path.basename(self.filename).rsplit('.', 1)[0]+'.txt')
+        np.savetxt(outputfile, self.ppdd.AIM, fmt = '%1.4f', newline = os.linesep)
+        self.statusBar().showMessage('Successfully saved file: {0}'.format(outputfile))
+
+    def saveFileAs(self):
+        if not self.filename :      #check if a file is loaded
+            self.statusBar().showMessage('No file is loaded, please load data file first!')
+            return
+
+        outputpath = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'output')
+        os.makedirs(outputpath, exist_ok=True)
+        outputfile = os.path.join(outputpath, os.path.basename(self.filename).rsplit('.', 1)[0]+'.txt')
+        filenames = QFileDialog.getSaveFileName(self, 'Save File', outputfile, 'Data file (*.txt);;Any file (*)', None, QFileDialog.DontUseNativeDialog) 
+        if filenames[0]:
+            #only if user actually selected a file
+            #make sure the result is what user wants
+            self.runPPDD()
+
+            np.savetxt(filenames[0], self.ppdd.AIM, fmt = '%1.4f', newline = os.linesep)
+            self.statusBar().showMessage('Successfully saved file: {0}'.format(filenames[0]))
 
     def update_conf(self):
         #TODO validate inputs
