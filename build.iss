@@ -59,9 +59,9 @@ Source: "C:\Users\sgsdxzy\Programs\ppdd\dist\mkl_vml_p4m2.dll"; DestDir: "{app}"
 Source: "C:\Users\sgsdxzy\Programs\ppdd\dist\mkl_vml_p4m3.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\sgsdxzy\Programs\ppdd\dist\process-stop.png"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\sgsdxzy\Programs\ppdd\dist\python34.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\sgsdxzy\Programs\ppdd\dist\mpl-data\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Users\sgsdxzy\Programs\ppdd\dist\platforms\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Users\sgsdxzy\Programs\ppdd\dist\pylibs\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Users\sgsdxzy\Programs\ppdd\dist\mpl-data\*"; DestDir: "{app}\mpl-data"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Users\sgsdxzy\Programs\ppdd\dist\platforms\*"; DestDir: "{app}\platforms"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Users\sgsdxzy\Programs\ppdd\dist\pylibs\*"; DestDir: "{app}\pylibs"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
