@@ -571,22 +571,50 @@ class MplCanvas(FigureCanvas):
         else :
             self.detached.show()
 
-class DetachedCanvas(FigureCanvas):
+
+class DetachedCanvas(QWidget):
     """A detached canvas used to show enlarged plots, and save individual plots."""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent = None):
+        super().__init__(parent)
         self.fig = Figure()
         self.axes = self.fig.add_subplot(111)
         # We want the axes cleared every time plot() is called
         self.axes.hold(False)
+        self.initUI()
+        
+    def initUI(self):
+        self.setWindowTitle('Canvas') 
+        self.hide()
 
-        FigureCanvas.__init__(self, self.fig)
-        self.setParent(parent)
+        self.grid = QGridLayout()
+        self.setLayout(self.grid)
 
-        FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
-        FigureCanvas.updateGeometry(self)
+        self.toolbar = QToolBar("Tools", self)
 
+        saveAs = QAction(QIcon.fromTheme('document-save-as'), 'Save as', self)
+        saveAs.setShortcut('Ctrl+S')
+        saveAs.setStatusTip('Save figure As')
+        saveAs.triggered.connect(self.saveFigureAs)
 
+        self.toolbar.addAction(saveAs)
+        self.grid.addWidget(self.toolbar, 0, 0)
+
+        self.canvas = FigureCanvas(self.fig)
+        self.canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.canvas.updateGeometry()
+        self.grid.addWidget(self.canvas, 1, 0)
+
+        self.draw = self.canvas.draw
+
+    def saveFigureAs(self):
+        outputpath = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'output')
+        os.makedirs(outputpath, exist_ok=True)
+        outputfile = os.path.join(outputpath, 'image.png')
+        filenames = QFileDialog.getSaveFileName(self, 'Save File', outputfile, "Images (*.png)", None, QFileDialog.DontUseNativeDialog) 
+        if filenames[0]:
+            #only if user actually selected a file
+            self.fig.savefig(filenames[0])
 
 
 if __name__ == '__main__':
