@@ -45,12 +45,13 @@ class PPDDWindow(QMainWindow):
         left = layout.left
         left.grid = QGridLayout()
         left.setLayout(left.grid)
-        #left.grid.setRowStretch(0, 3)
-        #left.grid.setRowStretch(1, 7)
+        left.grid.setRowStretch(0, 3)
+        left.grid.setRowStretch(1, 4)
+        left.grid.setRowStretch(2, 3)
         left.up = QWidget()
         left.down = QWidget()
         left.grid.addWidget(left.up, 0, 0)
-        left.grid.addWidget(left.down, 1, 0)
+        left.grid.addWidget(left.down, 2, 0)
 
         #the left up part
         up = left.up
@@ -62,17 +63,21 @@ class PPDDWindow(QMainWindow):
         up.grid.addWidget(QLabel("X range"), 0, 0, 1, 2)
         up.xmin = QLineEdit()
         up.xmin.setValidator(QIntValidator())
+        up.xmin.textEdited.connect(self.ppdd.reset)
         up.grid.addWidget(up.xmin, 1, 0)
         up.xmax = QLineEdit()
         up.xmax.setValidator(QIntValidator())
+        up.xmax.textEdited.connect(self.ppdd.reset)
         up.grid.addWidget(up.xmax, 1, 1)
 
         up.grid.addWidget(QLabel("Y range"), 2, 0, 1, 2)
         up.ymin = QLineEdit()
         up.ymin.setValidator(QIntValidator())
+        up.ymin.textEdited.connect(self.ppdd.reset)
         up.grid.addWidget(up.ymin, 3, 0)
         up.ymax = QLineEdit()
         up.ymax.setValidator(QIntValidator())
+        up.ymax.textEdited.connect(self.ppdd.reset)
         up.grid.addWidget(up.ymax, 3, 1)
 
         up.grid.addWidget(QLabel("Symmetry range"), 4, 0, 1, 2)
@@ -89,15 +94,19 @@ class PPDDWindow(QMainWindow):
         down.setLayout(down.grid)
         down.grid.setColumnStretch(0, 3)
         down.grid.setColumnStretch(1, 7)
+        for i in range(7):
+            down.grid.setRowStretch(i, 1)
 
         down.grid.addWidget(QLabel("fx"), 0, 0)
         down.fx = QLineEdit()
         down.fx.setValidator(QDoubleValidator(0, 0.5, 6))
+        down.fx.textEdited.connect(self.ppdd.reset)
         down.grid.addWidget(down.fx, 0, 1)
 
         down.grid.addWidget(QLabel("fy"), 1, 0)
         down.fy = QLineEdit()
         down.fy.setValidator(QDoubleValidator(0, 0.5, 6))
+        down.fy.textEdited.connect(self.ppdd.reset)
         down.grid.addWidget(down.fy, 1, 1)
 
         down.grid.addWidget(QLabel("xband"), 2, 0)
@@ -110,12 +119,17 @@ class PPDDWindow(QMainWindow):
         down.yband.setValidator(QDoubleValidator(0, 0.5, 6))
         down.grid.addWidget(down.yband, 3, 1)
 
-        down.grid.addWidget(QLabel("method"), 4, 0, 1, 2)
+        down.learning = QCheckBox("Learning")
+        down.learning.stateChanged.connect(self.ppdd.reset)
+        down.grid.addWidget(down.learning, 4, 0, 1, 2)
+
+
+        down.grid.addWidget(QLabel("method"), 5, 0, 1, 2)
         down.method = QComboBox()
         down.method.addItem("Hansen-Law")
         down.method.addItem("Onion-bordas")
         down.method.addItem("Basex")
-        down.grid.addWidget(down.method, 5, 0, 1, 2)
+        down.grid.addWidget(down.method, 6, 0, 1, 2)
 
         #the right column is used to display 4 plots in (2, 2) style
         right = layout.right
@@ -160,6 +174,7 @@ class PPDDWindow(QMainWindow):
         layout.left.down.fy.setText('{0:.4f}'.format(pypdd.guess.fy))
         layout.left.down.xband.setText('{0:.3f}'.format(pypdd.xband))
         layout.left.down.yband.setText('{0:.3f}'.format(pypdd.yband))
+        layout.left.down.learning.setChecked(pypdd.learning)
 
 
         openFile = QAction(QIcon.fromTheme('document-open'), 'Open', self)
@@ -172,7 +187,7 @@ class PPDDWindow(QMainWindow):
         run.setStatusTip('Run ppdd')
         run.triggered.connect(self.runPPDD)
 
-        #TODO batch-run and save as
+        #TODO batch-run
 
         saveFile = QAction(QIcon.fromTheme('document-save'), 'Save', self)
         saveFile.setShortcut('Ctrl+S')
@@ -287,102 +302,107 @@ class PPDDWindow(QMainWindow):
         #TODO validate inputs
 
         pypdd = self.ppdd
-        xmin = int(self.layout.left.up.xmin.text())
-        xmax = int(self.layout.left.up.xmax.text())
-        ymin = int(self.layout.left.up.ymin.text())
-        ymax = int(self.layout.left.up.ymax.text())
-        if not ((xmin == pypdd.xmin) and (ymin == pypdd.ymin) and (xmax == pypdd.xmax) and (ymax == pypdd.ymax)) :
-            #region has changed
-            pypdd.xmin = xmin
-            pypdd.xmax = xmax
-            pypdd.ymin = ymin
-            pypdd.ymax = ymax
-            pypdd.peak_fitted = False #bcause input has changed
+        pypdd.xmin = int(self.layout.left.up.xmin.text())
+        pypdd.xmax = int(self.layout.left.up.xmax.text())
+        pypdd.ymin = int(self.layout.left.up.ymin.text())
+        pypdd.ymax = int(self.layout.left.up.ymax.text())
 
         pypdd.symin = int(self.layout.left.up.symin.text())
         pypdd.symax = int(self.layout.left.up.symax.text())
         pypdd.xband = float(self.layout.left.down.xband.text())
         pypdd.yband = float(self.layout.left.down.yband.text())
 
+        pypdd.learning = self.layout.left.down.learning.isChecked()
         pypdd.method = self.method_dict[str(self.layout.left.down.method.currentText())]
 
 
     def runPPDD(self):
-        if not self.filename :      #check if a file is loaded
-            self.statusBar().showMessage('No file is loaded, please load data file first!')
-            return
-
-        self.update_conf()
-        pypdd = self.ppdd
-        #plot raw data and selected region
-        figure = self.layout.right.raw
-        pypdd.plot_raw(figure.axes, region = (pypdd.xmin, pypdd.xmax, pypdd.ymin, pypdd.ymax))
-        pypdd.plot_raw(figure.detached.axes, region = (pypdd.xmin, pypdd.xmax, pypdd.ymin, pypdd.ymax))
-        figure.draw()
-        figure.detached.draw()
-
-        #get fx and fy from input 
-        pypdd.guess.fx = float(self.layout.left.down.fx.text())
-        pypdd.guess.fy = float(self.layout.left.down.fy.text())
         try :
-            pypdd.find_peaks()
-        except RuntimeError :
-            self.statusBar().showMessage('Failed to find the secondary peak. Please input fx and fy and run again.')
-            #plot amplitude spectrum without passbands
+            if not self.filename :      #check if a file is loaded
+                self.statusBar().showMessage('No file is loaded, please load data file first!')
+                return
+
+            self.update_conf()
+            pypdd = self.ppdd
+            #plot raw data and selected region
+            figure = self.layout.right.raw
+            pypdd.plot_raw(figure.axes, region = (pypdd.xmin, pypdd.xmax, pypdd.ymin, pypdd.ymax))
+            pypdd.plot_raw(figure.detached.axes, region = (pypdd.xmin, pypdd.xmax, pypdd.ymin, pypdd.ymax))
+            figure.draw()
+            figure.detached.draw()
+
+            #get fx and fy from input 
+            pypdd.guess.fx = float(self.layout.left.down.fx.text())
+            pypdd.guess.fy = float(self.layout.left.down.fy.text())
+            try :
+                pypdd.find_peaks()
+            except RuntimeError :
+                self.statusBar().showMessage('Failed to find the secondary peak. Please enable learning, input fx and fy and run again.')
+                #plot amplitude spectrum without passbands
+                figure = self.layout.right.spectrum
+                pypdd.plot_amplitude(figure.axes)
+                pypdd.plot_amplitude(figure.detached.axes)
+                figure.draw()
+                figure.detached.draw()
+                return
+
+            #display fx and fy
+            self.layout.left.down.fx.setText('{0:.4f}'.format(pypdd.fx))
+            self.layout.left.down.fy.setText('{0:.4f}'.format(pypdd.fy))
+                    
+            #plot amplitude spectrum
             figure = self.layout.right.spectrum
-            pypdd.plot_amplitude(figure.axes)
-            pypdd.plot_amplitude(figure.detached.axes)
+            pypdd.plot_amplitude(figure.axes, bands=(pypdd.xband, pypdd.yband))
+            pypdd.plot_amplitude(figure.detached.axes, bands=(pypdd.xband, pypdd.yband))
             figure.draw()
             figure.detached.draw()
-            return
 
-        #display fx and fy
-        self.layout.left.down.fx.setText('{0:.4f}'.format(pypdd.fx))
-        self.layout.left.down.fy.setText('{0:.4f}'.format(pypdd.fy))
+            #get phase spectrum
+            try :
+                pypdd.filt_move()
+            except ValueError as e:
+                self.statusBar().showMessage(str(e))
+                return
                 
-        #plot amplitude spectrum
-        figure = self.layout.right.spectrum
-        pypdd.plot_amplitude(figure.axes, bands=(pypdd.xband, pypdd.yband))
-        pypdd.plot_amplitude(figure.detached.axes, bands=(pypdd.xband, pypdd.yband))
-        figure.draw()
-        figure.detached.draw()
 
-        #get phase spectrum
-        pypdd.filt_move()
+            #find the center of phase spectrum
+            try :
+                pypdd.find_symmetry_axis()
+            except RuntimeError :       #currently not possible because find_symmetry_axis always give a center in [ymin, ymax]
+                self.statusBar().showMessage('Failed to find the symmetry axis.')
+                #plot phase spectrum without center line
+                figure = self.layout.right.phase
+                pypdd.plot_phase(figure.axes, figure.cax, limits = (pypdd.symin, pypdd.symax))
+                pypdd.plot_phase(figure.detached.axes, figure.detached.cax, limits = (pypdd.symin, pypdd.symax))
+                figure.draw()
+                figure.detached.draw()
+                return
 
-        #find the center of phase spectrum
-        try :
-            pypdd.find_symmetry_axis()
-        except RuntimeError :       #currently not possible because find_symmetry_axis always give a center in [ymin, ymax]
-            self.statusBar().showMessage('Failed to find the symmetry axis.')
-            #plot phase spectrum without center line
+            #plot phase spectrum
             figure = self.layout.right.phase
-            pypdd.plot_phase(figure.axes, figure.cax, limits = (pypdd.symin, pypdd.symax))
-            pypdd.plot_phase(figure.detached.axes, figure.detached.cax, limits = (pypdd.symin, pypdd.symax))
+            pypdd.plot_phase(figure.axes, figure.cax, limits = (pypdd.symin, pypdd.symax), symmetry = pypdd.ycenter)
+            pypdd.plot_phase(figure.detached.axes, figure.detached.cax, limits = (pypdd.symin, pypdd.symax), symmetry = pypdd.ycenter)
             figure.draw()
             figure.detached.draw()
-            return
 
-        #plot phase spectrum
-        figure = self.layout.right.phase
-        pypdd.plot_phase(figure.axes, figure.cax, limits = (pypdd.symin, pypdd.symax), symmetry = pypdd.ycenter)
-        pypdd.plot_phase(figure.detached.axes, figure.detached.cax, limits = (pypdd.symin, pypdd.symax), symmetry = pypdd.ycenter)
-        figure.draw()
-        figure.detached.draw()
+            #perform abel transform
+            try :
+                pypdd.abel()
+            except ValueError :     #given invalid symmetry axis
+                self.statusBar().showMessage('Failed to perform Abel transform.')
+                return
 
-        #perform abel transform
-        try :
-            pypdd.abel()
-        except ValueError :     #given invalid symmetry axis
-            self.statusBar().showMessage('Failed to perform Abel transform.')
-            return
+            #plot desnity (relative refractivity)
+            figure = self.layout.right.density
+            pypdd.plot_density(figure.axes, figure.cax)
+            pypdd.plot_density(figure.detached.axes, figure.detached.cax)
+            figure.draw()
+            figure.detached.draw()
 
-        #plot desnity (relative refractivity)
-        figure = self.layout.right.density
-        pypdd.plot_density(figure.axes, figure.cax)
-        pypdd.plot_density(figure.detached.axes, figure.detached.cax)
-        figure.draw()
-        figure.detached.draw()
+        except Exception as e:
+            self.statusBar().showMessage(str(e))
+            raise
+
 
     def about(self):
         QMessageBox.about(self, "About", """

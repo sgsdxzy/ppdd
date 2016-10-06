@@ -29,6 +29,7 @@ class PPDD(object):
         self.symin = symin      #limits the symmetry axis finding to [symin, symax]
         self.symax = symax
         self.method = method
+        self.learning = True
         self.peak_fitted = False
 
         self.abel_methods = {
@@ -36,6 +37,9 @@ class PPDD(object):
             "onion_bordas": self.abel_onion_bordas,
             "basex": self.abel_basex
         }
+
+    def reset(self):
+        self.peak_fitted = False
 
     def readfile(self, filename):
         """
@@ -55,13 +59,16 @@ class PPDD(object):
             XYf2d = np.fft.fftn(self.xy2d)
             self.XYf2d_shifted = np.abs(np.fft.fftshift(XYf2d))                #shift frequency of (0,0) to the center
 
-            #try hot start
-            try :
-                self.find_peaks_hot_start()
-            except RuntimeError :
-                #hot start failed, fall back to cold start
-                self.find_peaks_cold_start()    #if this fail, a RuntimeError will be raised
-            self.peak_fitted = True
+            #if learning, try hot start
+            if self.learning :
+                try :
+                    self.find_peaks_hot_start()
+                    return
+                except RuntimeError :
+                    #hot start failed, fall back to cold start
+                    pass
+            self.find_peaks_cold_start()    #if this fail, a RuntimeError will be raised
+
 
     def find_peaks_hot_start(self):
         """
@@ -69,6 +76,7 @@ class PPDD(object):
         """
         self.fx, self.fy, newguess = fittools.find_peaks(self.XYf2d_shifted, self.guess) 
         self.guess = newguess
+        self.peak_fitted = True
 
     def find_peaks_cold_start(self):
         """
@@ -79,15 +87,15 @@ class PPDD(object):
         dXf = 1/length_x
         dYf = 1/length_y
 
-        y_x0 = self.XYf2d_shifted[:, XYf2d_shifted.shape[1]//2]         #the x center line, gg if the main peak isn't there!
+        y_x0 = self.XYf2d_shifted[:, length_x//2]         #the x center line, gg if the main peak isn't there!
         popt_y = fittools.fit_gaussian(y_x0, -np.inf, np.inf)           #fit the 1D center line to get a good starting point for sigam
         #get the y sigam
         sigma_y0 = popt_y[2]
 
         x_sum = np.sum(self.XYf2d_shifted, axis = 0)                    #the projection on x axis     
-        peaks = signal.find_peaks_cwt(x_sum, np.arange(1, 0.1*length_x))        #TODO further polish wavelet coefficients 
+        peaks = np.array(signal.find_peaks_cwt(x_sum, np.arange(0.01*length_x, 0.1*length_x)))        #TODO further polish wavelet coefficients 
         acceptance = 0.1                                                #the left and right peaks should be symmetric, this is the maximum accepted difference ratio 
-        center_index = fittool.find_nearest(peaks, length_x//2)
+        center_index = fittools.find_nearest(peaks, length_x//2)
         left_peak = center_index - 1
         right_peak = center_index + 1
         while 1 :
@@ -115,7 +123,7 @@ class PPDD(object):
                 right_peak += 1
                 continue
 
-        if not popt_x :
+        if not np.any(popt_x) :
             #tough luck, find_peaks_cwt doen't return a pair of left and right peaks in accepetance
             #deprerate try
             self.guess.sigma_x0 = sigma_y0
@@ -127,7 +135,7 @@ class PPDD(object):
 
         #We have popt_x and popt_y now
         #popt_x: a0, x0, sigma_x0, a1, x1, sigma_x1, offset
-        coldguess = fittools.Guess(popt_x[3]/popt_x[0], popt_x[2], sigma_y0, popt_x[5], sigma_y0, popt_x[6]/popt[0], fx = (popt_x[4]-popt_x[1])*dXf, fy = 0)
+        coldguess = fittools.Guess(popt_x[3]/popt_x[0], popt_x[2], sigma_y0, popt_x[5], sigma_y0, 0, fx = (popt_x[4]-popt_x[1])*dXf, fy = 0)
         self.guess = coldguess
         self.find_peaks_hot_start()                                     #this shouldn't fail. Were it to fail, a RuntimeError will be raised
 
@@ -207,7 +215,7 @@ class PPDD(object):
         ax.set_xlim(-0.2,0.2)
         ax.set_ylim(-0.2,0.2)
         if bands :
-            rect = patches.Rectangle((self.fx-bands[0], -(np.abs(self.fy)+bands[1])), 2*bands[0], 2*(bands[1]+np.abs(self.fy)), linewidth=2, edgecolor='r', facecolor='none')
+            rect = patches.Rectangle((self.fx-bands[0], -(abs(self.fy)+bands[1])), 2*bands[0], 2*(bands[1]+abs(self.fy)), linewidth=2, edgecolor='r', facecolor='none')
             ax.add_patch(rect)
 
     def plot_phase(self, ax, cax, limits = None, symmetry = None):

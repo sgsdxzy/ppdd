@@ -163,7 +163,10 @@ def three_peaks_1d(x, a0, x0, sigma_x0, a1, x1, sigma_x1, offset):
     return peak0 + peak1 + peakm1 + offset
 
 def find_peaks_1d(x, a0, x0, sigma_x0, a1, x1, sigma_x1, offset):
-    popt,_ = curve_fit(three_peaks_1d, np.arange(x.shape[0]), x, p0 = (a0, x0, sigma_x0, a1, x1, sigma_x1, offset))
+    length_x = x.shape[0]
+    popt,_ = curve_fit(three_peaks_1d, np.arange(length_x), x, p0 = (a0, x0, sigma_x0, a1, x1, sigma_x1, offset), 
+            bounds = ([-np.inf, 0, 0, -np.inf, length_x//2, 0, -np.inf], [np.inf, length_x, np.inf, np.inf, length_x, max(0.01*length_x, 5), np.inf]))
+            #needs to limit sigma to avoid unsense results
     return popt
 
 def three_peaks(xy_tuple, a0, x0, y0, sigma_x0, sigma_y0, a1, x1, y1, sigma_x1, sigma_y1, offset):
@@ -196,7 +199,10 @@ def find_peaks(XYf2d_shifted, guess):
     offset = guess.offset_ratio*a0 
     initial_guess = (a0, x0, y0, guess.sigma_x0, guess.sigma_y0, a1, x1, y1, guess.sigma_x1, guess.sigma_y1, offset)     
     x, y = np.meshgrid(np.arange(length_x), np.arange(length_y))       
-    popt,_ = curve_fit(three_peaks, (x, y), XYf2d_shifted.ravel(), p0=initial_guess)
+    popt,_ = curve_fit(three_peaks, (x, y), XYf2d_shifted.ravel(), p0=initial_guess, 
+            bounds = ([-np.inf, 0, 0, 0, 0, -np.inf, length_x//2, 0, 0, 0, -np.inf], 
+                [np.inf, length_x, length_y, np.inf, np.inf, np.inf, length_x, length_y, max(0.01*length_x, 5), max(0.01*length_y, 5), np.inf]))   
+            #needs to limit sigma to avoid unsense results
     
     fx = (popt[6]-popt[1])*dXf
     fy = (popt[7]-popt[2])*dYf
