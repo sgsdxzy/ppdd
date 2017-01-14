@@ -232,11 +232,14 @@ class PPDD(object):
         if symmetry :
             ax.hlines(symmetry, 0, self.phase.shape[1], linewidth=3, colors='black')
 
-    def plot_density(self, ax, cax, vmin=0, vmax=0.1):
+    def plot_density(self, ax, cax, vmin=0, vmax=0):
         """
         Plot the result density of abel transform.
         """
         ax.set_title('Relative Refractivity')
+        if vmin == vmax :
+            vmin = np.min(self.AIM)
+            vmax = np.max(self.AIM)
         im = ax.pcolormesh(self.AIM, vmin=vmin, vmax=vmax)
         plt.colorbar(im, cax)
         ax.set_xlim(0, self.AIM.shape[1])

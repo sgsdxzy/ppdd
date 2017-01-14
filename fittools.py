@@ -102,6 +102,9 @@ def fit_gaussian(x, xmin, xmax):
     out : tuple of float
         (a, mu, sigma, c)
     """
+    if xmin == xmax :
+        xmin = -np.Inf
+        xmax = np.inf
     p, q = curve_fit(gaussian, np.arange(x.size), x, p0=guss_gaussian(x), bounds=([-np.inf, xmin, -np.inf, -np.inf], [np.inf, xmax, np.inf, np.inf]))
     return p
 
