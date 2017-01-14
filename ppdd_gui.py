@@ -13,6 +13,9 @@ import numpy as np
 
 import ppdd
 
+def iconPath(iconName):
+    return os.path.join('icons', iconName)
+
 class PPDDWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -177,37 +180,37 @@ class PPDDWindow(QMainWindow):
         layout.left.down.yband.setText('{0:.3f}'.format(pypdd.yband))
         layout.left.down.learning.setChecked(pypdd.learning)
 
-        openFile = QAction(QIcon('document-open'), 'Open', self)
+        openFile = QAction(QIcon(iconPath('document-open')), 'Open', self)
         openFile.setShortcut('Ctrl+O')
         openFile.setStatusTip('Open file')
         openFile.triggered.connect(self.loadFileDialog)
 
-        run = QAction(QIcon('media-playback-start'), 'Run', self)
+        run = QAction(QIcon(iconPath('media-playback-start')), 'Run', self)
         run.setShortcut('Ctrl+R')
         run.setStatusTip('Run ppdd')
         run.triggered.connect(self.runPPDD)
 
-        saveFile = QAction(QIcon('document-save'), 'Save', self)
+        saveFile = QAction(QIcon(iconPath('document-save')), 'Save', self)
         saveFile.setShortcut('Ctrl+S')
         saveFile.setStatusTip('Save file')
         saveFile.triggered.connect(self.saveFile)
 
-        saveFileAs = QAction(QIcon('document-save-as'), 'Save as', self)
+        saveFileAs = QAction(QIcon(iconPath('document-save-as')), 'Save as', self)
         saveFileAs.setShortcut('Ctrl+D')
         saveFileAs.setStatusTip('Save file As')
         saveFileAs.triggered.connect(self.saveFileAs)
 
-        batchRun = QAction(QIcon('media-seek-forward'), 'Batch run', self)
+        batchRun = QAction(QIcon(iconPath('media-seek-forward')), 'Batch run', self)
         batchRun.setShortcut('Ctrl+B')
         batchRun.setStatusTip('Batch run')
         batchRun.triggered.connect(self.batchRun)
 
-        exitAction = QAction(QIcon('application-exit'), 'Exit', self)
+        exitAction = QAction(QIcon(iconPath('application-exit')), 'Exit', self)
         exitAction.setShortcut('Ctrl+Q')
         exitAction.setStatusTip('Exit application')
         exitAction.triggered.connect(self.close)
 
-        aboutAction = QAction(QIcon('help-about'), 'About', self)
+        aboutAction = QAction(QIcon(iconPath('help-about')), 'About', self)
         aboutAction.setStatusTip('About ppdd')
         aboutAction.triggered.connect(self.about)
 
@@ -238,7 +241,7 @@ class PPDDWindow(QMainWindow):
         toolbar.addAction(exitAction)
 
         self.setWindowTitle('Python Plasma Density Diagnostics')    
-        self.setWindowIcon(QIcon('ppdd.png'))   
+        self.setWindowIcon(QIcon(iconPath('ppdd.png')))   
         self.showMaximized()
 
     def closeEvent(self, event):
@@ -284,7 +287,9 @@ class PPDDWindow(QMainWindow):
         outputpath = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'output')
         os.makedirs(outputpath, exist_ok=True)
         outputfile = os.path.join(outputpath, os.path.basename(self.filename).rsplit('.', 1)[0]+'.txt')
+        outputfig = os.path.join(outputpath, os.path.basename(self.filename).rsplit('.', 1)[0]+'.png')
         np.savetxt(outputfile, self.ppdd.AIM, fmt = '%1.6f', newline = os.linesep)
+        self.layout.right.density.fig.savefig(outputfig)
         self.statusBar().showMessage('Successfully saved file: {0}'.format(outputfile))
 
     def saveFileAs(self):
@@ -295,6 +300,7 @@ class PPDDWindow(QMainWindow):
         outputpath = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'output')
         os.makedirs(outputpath, exist_ok=True)
         outputfile = os.path.join(outputpath, os.path.basename(self.filename).rsplit('.', 1)[0]+'.txt')
+        outputfig = os.path.join(outputpath, os.path.basename(self.filename).rsplit('.', 1)[0]+'.png')
         filenames = QFileDialog.getSaveFileName(self, 'Save File', outputfile, 'Data file (*.txt);;Any file (*)', None, QFileDialog.DontUseNativeDialog) 
         if filenames[0]:
             #only if user actually selected a file
@@ -302,6 +308,7 @@ class PPDDWindow(QMainWindow):
             self.runPPDD()
 
             np.savetxt(filenames[0], self.ppdd.AIM, fmt = '%1.6f', newline = os.linesep)
+            self.layout.right.density.fig.savefig(outputfig)
             self.statusBar().showMessage('Successfully saved file: {0}'.format(filenames[0]))
 
     def batchRun(self):
@@ -446,17 +453,17 @@ class batchRunWindow(QWidget):
 
         self.toolbar = QToolBar("Batch run", self)
 
-        openFiles = QAction(QIcon('document-open'), 'Open files', self)
+        openFiles = QAction(QIcon(iconPath('document-open')), 'Open files', self)
         openFiles.setShortcut('Ctrl+O')
         openFiles.setStatusTip('Open files')
         openFiles.triggered.connect(self.loadFilesDialog)
 
-        run = QAction(QIcon('media-seek-forward'), 'Batch run', self)
+        run = QAction(QIcon(iconPath('media-seek-forward')), 'Batch run', self)
         run.setShortcut('Ctrl+R')
         run.setStatusTip('Batch run')
         run.triggered.connect(self.start)
 
-        stop = QAction(QIcon('process-stop'), 'Stop', self)
+        stop = QAction(QIcon(iconPath('process-stop')), 'Stop', self)
         stop.setShortcut('Ctrl+P')
         stop.setStatusTip('Stop')
         stop.triggered.connect(self.stop)
@@ -483,6 +490,11 @@ class batchRunWindow(QWidget):
         if filenames[0]:
             self.status.showMessage('Selected {0} file(s): {1}...'.format(len(filenames[0]), filenames[0][0]))
             self.filenames = filenames[0]
+            outputpath = QFileDialog.getExistingDirectory(self, 'Output directory', '', None, QFileDialog.DontUseNativeDialog)
+            if outputdir[0]:
+                self.outputpath = outputpath[0]
+            else :
+                self.outputpath = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'output')
 
     def loopGenerator(self):
         # Put the code of your loop here
@@ -497,7 +509,9 @@ class batchRunWindow(QWidget):
                 pypdd.abel()
 
                 outputfile = os.path.join(self.outputpath, os.path.basename(f).rsplit('.', 1)[0]+'.txt')
+                outputfig = os.path.join(self.outputpath, os.path.basename(f).rsplit('.', 1)[0]+'.png')
                 np.savetxt(outputfile, pypdd.AIM, fmt = '%1.6f', newline = os.linesep)
+                pypdd.layout.right.density.fig.savefig(outputfig)
                 self.status.showMessage('Successfully saved file: {0}'.format(outputfile))
                 self.success += 1
             except :
@@ -511,7 +525,6 @@ class batchRunWindow(QWidget):
             return
 
         self.mainWindow.update_conf()
-        self.outputpath = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'output')
         os.makedirs(self.outputpath, exist_ok=True)
         self.total = len(self.filenames)
         self.success = 0
@@ -592,7 +605,7 @@ class DetachedCanvas(QWidget):
 
         self.toolbar = QToolBar("Tools", self)
 
-        saveAs = QAction(QIcon('document-save-as'), 'Save as', self)
+        saveAs = QAction(QIcon(iconPath('document-save-as')), 'Save as', self)
         saveAs.setShortcut('Ctrl+S')
         saveAs.setStatusTip('Save figure As')
         saveAs.triggered.connect(self.saveFigureAs)
@@ -608,10 +621,7 @@ class DetachedCanvas(QWidget):
         self.draw = self.canvas.draw
 
     def saveFigureAs(self):
-        outputpath = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'output')
-        os.makedirs(outputpath, exist_ok=True)
-        outputfile = os.path.join(outputpath, 'image.png')
-        filenames = QFileDialog.getSaveFileName(self, 'Save File', outputfile, "Images (*.png)", None, QFileDialog.DontUseNativeDialog) 
+        filenames = QFileDialog.getSaveFileName(self, 'Save File', '', "Images (*.png)", None, QFileDialog.DontUseNativeDialog) 
         if filenames[0]:
             #only if user actually selected a file
             self.fig.savefig(filenames[0])
