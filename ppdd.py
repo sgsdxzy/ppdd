@@ -5,6 +5,7 @@ from scipy import signal
 import cunwrap
 import abel
 from matplotlib import pyplot as plt, patches
+from PIL import Image
 
 import fittools
 
@@ -45,7 +46,11 @@ class PPDD(object):
         """
         Read input file filename
         """
-        self.rawdata = np.loadtxt(filename, dtype=int)
+        _, ext = os.path.splitext(filename)
+        if ext == 'txt' :
+            self.rawdata = np.loadtxt(filename, dtype=int)
+        else :
+            self.rawdata = np.array(Image.open(filename))
         self.peak_fitted = False
 
     def find_peaks(self):
