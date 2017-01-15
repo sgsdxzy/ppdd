@@ -19,7 +19,8 @@ class PPDD(object):
     find_symmetry_axis
     abel
     """
-    def __init__(self, xmin = 0, xmax = 800, ymin = 400, ymax = 600, xband = 0.01, yband = 0.1, symin = 50, symax = 150, method = 'hansenlaw', wavelength=800, scale=1, n0=1, gfactor=1, **kwargs):
+    def __init__(self, xmin = 0, xmax = 800, ymin = 0, ymax = 600, xband = 0.01, yband = 0.1, symin = 0, symax = 0, method = 'hansenlaw', \
+            wavelength=800, scale=1, n0=1, gfactor=1, peak_threshold=99.9, **kwargs):
         self.guess = fittools.Guess(**kwargs);
         self.xmin = xmin        #crop the region [ymin:ymax, xmin:xmax] from raw input data
         self.xmax = xmax
@@ -34,6 +35,7 @@ class PPDD(object):
         self.scale = scale                  #um per pixel
         self.n0 = n0
         self.gfactor = gfactor
+        self.peak_threshold = peak_threshold
         self.learning = True
         self.peak_fitted = False
 
@@ -83,8 +85,10 @@ class PPDD(object):
         """
         Find the three peaks in the frequency spectrum. 
         """
-        self.fx, self.fy, newguess = fittools.find_peaks(self.XYf2d_shifted, self.guess) 
+        perc = np.percentile(self.XYf2d_shifted, self.peak_threshold)
+        self.fx, self.fy, newguess = fittools.find_peaks(self.XYf2d_shifted.clip(min=perc), self.guess) 
         self.guess = newguess
+        #print(newguess.peak_ratio, newguess.sigma_x0, newguess.sigma_x1, newguess.sigma_y0, newguess.sigma_y1, newguess.offset_ratio)
         self.peak_fitted = True
 
     def find_peaks_cold_start(self):
@@ -183,6 +187,13 @@ class PPDD(object):
         self.phase = cunwrap.unwrap(phase)
 
     def find_symmetry_axis(self):
+        if self.ymin == self.ymax:
+            if self.ymin == 0 :
+                self.ycenter = fittools.find_symmetry_axis(self.phase, 0, self.ymax-self.ymin)
+                return
+            else :
+                self.ycenter = self.ymin
+            return
         self.ycenter = fittools.find_symmetry_axis(self.phase, self.symin, self.symax)
 
     def abel(self):
@@ -225,15 +236,18 @@ class PPDD(object):
             ax.add_patch(rect)
         
 
-    def plot_amplitude(self, ax, vmax=1e7, bands = None):
+    def plot_amplitude(self, ax, vmax=0, bands = None):
         """
         bands: tuple of (xband, yband). bands not equal None will add a rectagular to display passbands.
         """
         ax.set_title('Amplitude spectrum')
         xfreq = np.fft.fftshift(np.fft.fftfreq(self.XYf2d_shifted.shape[1]))
         yfreq = np.fft.fftshift(np.fft.fftfreq(self.XYf2d_shifted.shape[0]))
+        if vmax==0 :
+            vmax = np.percentile(self.XYf2d_shifted, self.peak_threshold)
+            #print("vmax=", vmax)
         ax.pcolormesh(xfreq, yfreq, self.XYf2d_shifted, vmax=vmax)
-        ax.set_xlim(-0.2,0.2)
+        ax.set_xlim(-0.1,0.1)
         ax.set_ylim(-0.2,0.2)
         if bands :
             rect = patches.Rectangle((self.fx-bands[0], -(abs(self.fy)+bands[1])), 2*bands[0], 2*(bands[1]+abs(self.fy)), linewidth=2, edgecolor='r', facecolor='none')
@@ -259,8 +273,8 @@ class PPDD(object):
         """
         ax.set_title('Relative Refractivity')
         if vmin == vmax :
-            vmin = np.min(self.AIM)
-            vmax = np.max(self.AIM)
+            vmin = 0
+            vmax = np.percentile(self.AIM, 95)
         im = ax.pcolormesh(self.AIM, vmin=vmin, vmax=vmax)
         plt.colorbar(im, cax)
         ax.set_xlim(0, self.AIM.shape[1])

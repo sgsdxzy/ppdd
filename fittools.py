@@ -6,7 +6,7 @@ class Guess(object):
     """
     Container of guesses for fitting, used on initial fit guesses and learning.
     """
-    def __init__(self, peak_ratio = 0.1, sigma_x0 = 1, sigma_y0 = 1, sigma_x1 = 1, sigma_y1 = 1, offset_ratio = 3e-5, fx = 0.06, fy = 0):
+    def __init__(self, peak_ratio = 0.2, sigma_x0 = 0.01, sigma_y0 = 0.01, sigma_x1 = 1, sigma_y1 = 1, offset_ratio = 0.006, fx = 0.03, fy = 0):
         self.peak_ratio = peak_ratio
         self.sigma_x0 = sigma_x0
         self.sigma_y0 = sigma_y0
@@ -102,9 +102,6 @@ def fit_gaussian(x, xmin, xmax):
     out : tuple of float
         (a, mu, sigma, c)
     """
-    if xmin == xmax :
-        xmin = -np.Inf
-        xmax = np.inf
     p, q = curve_fit(gaussian, np.arange(x.size), x, p0=guss_gaussian(x), bounds=([-np.inf, xmin, -np.inf, -np.inf], [np.inf, xmax, np.inf, np.inf]))
     return p
 
@@ -203,7 +200,7 @@ def find_peaks(XYf2d_shifted, guess):
     initial_guess = (a0, x0, y0, guess.sigma_x0, guess.sigma_y0, a1, x1, y1, guess.sigma_x1, guess.sigma_y1, offset)     
     x, y = np.meshgrid(np.arange(length_x), np.arange(length_y))       
     popt,_ = curve_fit(three_peaks, (x, y), XYf2d_shifted.ravel(), p0=initial_guess, 
-            bounds = ([-np.inf, 0, 0, 0, 0, -np.inf, length_x//2, 0, 0, 0, -np.inf], 
+            bounds = ([0, 0, 0, 0, 0, 0, length_x//2, 0, 0, 0, 0], 
                 [np.inf, length_x, length_y, np.inf, np.inf, np.inf, length_x, length_y, max(0.01*length_x, 5), max(0.01*length_y, 5), np.inf]))   
             #needs to limit sigma to avoid unsense results
     

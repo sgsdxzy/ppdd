@@ -112,6 +112,12 @@ class PPDDWindow(QMainWindow):
         up.gfactor.setValidator(QDoubleValidator(0, 1e9, 6))
         up.grid.addWidget(up.gfactor, 11, 1)
 
+        up.grid.addWidget(QLabel("Peak threshold"), 12, 0)
+        up.pthr = QLineEdit()
+        up.pthr.setValidator(QDoubleValidator(0, 100, 6))
+        up.grid.addWidget(up.pthr, 12, 1)
+
+
         #the left down part
         down = left.down
         down.grid = QGridLayout()
@@ -198,6 +204,7 @@ class PPDDWindow(QMainWindow):
         layout.left.up.scale.setText(str(pypdd.scale))
         layout.left.up.n0.setText(str(pypdd.n0))
         layout.left.up.gfactor.setText(str(pypdd.gfactor))
+        layout.left.up.pthr.setText(str(pypdd.peak_threshold))
         layout.left.down.fx.setText('{0:.4f}'.format(pypdd.guess.fx))
         layout.left.down.fy.setText('{0:.4f}'.format(pypdd.guess.fy))
         layout.left.down.xband.setText('{0:.3f}'.format(pypdd.xband))
@@ -355,6 +362,7 @@ class PPDDWindow(QMainWindow):
         pypdd.scale = float(self.layout.left.up.scale.text())
         pypdd.n0 = float(self.layout.left.up.n0.text())
         pypdd.gfactor = float(self.layout.left.up.gfactor.text())
+        pypdd.peak_threshold = float(self.layout.left.up.pthr.text())
         pypdd.xband = float(self.layout.left.down.xband.text())
         pypdd.yband = float(self.layout.left.down.yband.text())
 
