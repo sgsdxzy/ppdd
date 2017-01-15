@@ -19,7 +19,7 @@ class PPDD(object):
     find_symmetry_axis
     abel
     """
-    def __init__(self, xmin = 0, xmax = 800, ymin = 400, ymax = 600, xband = 0.01, yband = 0.1, symin = 50, symax = 150, method = 'hansenlaw', **kwargs):
+    def __init__(self, xmin = 0, xmax = 800, ymin = 400, ymax = 600, xband = 0.01, yband = 0.1, symin = 50, symax = 150, method = 'hansenlaw', wavelength=800, scale=1, n0=1, gfactor=1, **kwargs):
         self.guess = fittools.Guess(**kwargs);
         self.xmin = xmin        #crop the region [ymin:ymax, xmin:xmax] from raw input data
         self.xmax = xmax
@@ -30,6 +30,10 @@ class PPDD(object):
         self.symin = symin      #limits the symmetry axis finding to [symin, symax]
         self.symax = symax
         self.method = method
+        self.wavelength = wavelength        #nm
+        self.scale = scale                  #um per pixel
+        self.n0 = n0
+        self.gfactor = gfactor
         self.learning = True
         self.peak_fitted = False
 
@@ -184,6 +188,18 @@ class PPDD(object):
     def abel(self):
         IM = fittools.half_image(self.phase.transpose(), self.ycenter)
         self.abel_methods[self.method](IM)
+        self.AIM = self.AIM*(self.wavelength/1e3)/(2*np.pi*self.scale) * self.gfactor
+
+        #delta n should always be positive, so make sure the majority of image is positive
+        if (self.AIM>0).sum() < (self.AIM<0).sum() :
+            self.AIM = -self.AIM
+        
+        self.AIM += self.n0
+        self.AIM.clip(min=1)
+        nc = 1.11943771e27/(self.wavelength**2)     # cm^-3
+        self.AIM = (1-1/self.AIM**2)*nc
+
+
 
     def abel_hansenlaw(self, IM):
         self.AIM = abel.hansenlaw.hansenlaw_transform(IM, direction = 'inverse').transpose()
@@ -209,7 +225,7 @@ class PPDD(object):
             ax.add_patch(rect)
         
 
-    def plot_amplitude(self, ax, vmax=1e6, bands = None):
+    def plot_amplitude(self, ax, vmax=1e7, bands = None):
         """
         bands: tuple of (xband, yband). bands not equal None will add a rectagular to display passbands.
         """

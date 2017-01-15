@@ -92,6 +92,26 @@ class PPDDWindow(QMainWindow):
         up.symax.setValidator(QIntValidator())
         up.grid.addWidget(up.symax, 5, 1)
 
+        up.grid.addWidget(QLabel("Laser wavelength (nm)"), 6, 0, 1, 2)
+        up.wavelength = QLineEdit()
+        up.wavelength.setValidator(QDoubleValidator(0.0, 1.0e9, 1000))
+        up.grid.addWidget(up.wavelength, 7, 0, 1, 2)
+
+        up.grid.addWidget(QLabel("Physical length per pixel (um)"), 8, 0, 1, 2)
+        up.scale = QLineEdit()
+        up.scale.setValidator(QDoubleValidator(0.0, 1.0e9, 1000))
+        up.grid.addWidget(up.scale, 9, 0, 1, 2)
+
+        up.grid.addWidget(QLabel("Backdround n"), 10, 0)
+        up.n0 = QLineEdit()
+        up.n0.setValidator(QDoubleValidator(0, 2, 6))
+        up.grid.addWidget(up.n0, 10, 1)
+
+        up.grid.addWidget(QLabel("G factor"), 11, 0)
+        up.gfactor = QLineEdit()
+        up.gfactor.setValidator(QDoubleValidator(0, 1e9, 6))
+        up.grid.addWidget(up.gfactor, 11, 1)
+
         #the left down part
         down = left.down
         down.grid = QGridLayout()
@@ -174,6 +194,10 @@ class PPDDWindow(QMainWindow):
         layout.left.up.ymax.setText(str(pypdd.ymax))
         layout.left.up.symin.setText(str(pypdd.symin))
         layout.left.up.symax.setText(str(pypdd.symax))
+        layout.left.up.wavelength.setText(str(pypdd.wavelength))
+        layout.left.up.scale.setText(str(pypdd.scale))
+        layout.left.up.n0.setText(str(pypdd.n0))
+        layout.left.up.gfactor.setText(str(pypdd.gfactor))
         layout.left.down.fx.setText('{0:.4f}'.format(pypdd.guess.fx))
         layout.left.down.fy.setText('{0:.4f}'.format(pypdd.guess.fy))
         layout.left.down.xband.setText('{0:.3f}'.format(pypdd.xband))
@@ -319,8 +343,6 @@ class PPDDWindow(QMainWindow):
             self.batch.show()
 
     def update_conf(self):
-        #TODO validate inputs
-
         pypdd = self.ppdd
         pypdd.xmin = int(self.layout.left.up.xmin.text())
         pypdd.xmax = int(self.layout.left.up.xmax.text())
@@ -329,6 +351,10 @@ class PPDDWindow(QMainWindow):
 
         pypdd.symin = int(self.layout.left.up.symin.text())
         pypdd.symax = int(self.layout.left.up.symax.text())
+        pypdd.wavelength = float(self.layout.left.up.wavelength.text())
+        pypdd.scale = float(self.layout.left.up.scale.text())
+        pypdd.n0 = float(self.layout.left.up.n0.text())
+        pypdd.gfactor = float(self.layout.left.up.gfactor.text())
         pypdd.xband = float(self.layout.left.down.xband.text())
         pypdd.yband = float(self.layout.left.down.yband.text())
 
