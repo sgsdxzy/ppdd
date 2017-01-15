@@ -524,8 +524,8 @@ class batchRunWindow(QWidget):
         if filenames[0]:
             self.status.showMessage('Selected {0} file(s): {1}...'.format(len(filenames[0]), filenames[0][0]))
             self.filenames = filenames[0]
-            outputpath = QFileDialog.getExistingDirectory(self, 'Output directory', '', None, QFileDialog.DontUseNativeDialog)
-            if outputdir[0]:
+            outputpath = QFileDialog.getExistingDirectory(self, 'Output directory', '', QFileDialog.DontUseNativeDialog)
+            if outputpath[0]:
                 self.outputpath = outputpath[0]
             else :
                 self.outputpath = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'output')

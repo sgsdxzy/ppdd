@@ -187,12 +187,12 @@ class PPDD(object):
         self.phase = cunwrap.unwrap(phase)
 
     def find_symmetry_axis(self):
-        if self.ymin == self.ymax:
-            if self.ymin == 0 :
+        if self.symin == self.symax:
+            if self.symin == 0 :
                 self.ycenter = fittools.find_symmetry_axis(self.phase, 0, self.ymax-self.ymin)
                 return
             else :
-                self.ycenter = self.ymin
+                self.ycenter = self.symin
             return
         self.ycenter = fittools.find_symmetry_axis(self.phase, self.symin, self.symax)
 
