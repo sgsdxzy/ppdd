@@ -274,7 +274,7 @@ class PPDD(object):
         ax.set_title('Relative Refractivity')
         if vmin == vmax :
             vmin = 0
-            vmax = np.percentile(self.AIM, 95)
+            vmax = np.percentile(self.AIM, 99)
         im = ax.pcolormesh(self.AIM, vmin=vmin, vmax=vmax)
         plt.colorbar(im, cax)
         ax.set_xlim(0, self.AIM.shape[1])

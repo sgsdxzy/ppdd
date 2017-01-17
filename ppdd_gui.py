@@ -331,7 +331,6 @@ class PPDDWindow(QMainWindow):
         outputpath = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'output')
         os.makedirs(outputpath, exist_ok=True)
         outputfile = os.path.join(outputpath, os.path.basename(self.filename).rsplit('.', 1)[0]+'.txt')
-        outputfig = os.path.join(outputpath, os.path.basename(self.filename).rsplit('.', 1)[0]+'.png')
         filenames = QFileDialog.getSaveFileName(self, 'Save File', outputfile, 'Data file (*.txt);;Any file (*)', None, QFileDialog.DontUseNativeDialog) 
         if filenames[0]:
             #only if user actually selected a file
@@ -339,7 +338,8 @@ class PPDDWindow(QMainWindow):
             self.runPPDD()
 
             np.savetxt(filenames[0], self.ppdd.AIM, fmt = '%1.6f', newline = os.linesep)
-            self.layout.right.density.fig.savefig(outputfig)
+            filename, file_extension = os.path.splitext(filenames[0])
+            self.layout.right.density.fig.savefig(filename+'.png')
             self.statusBar().showMessage('Successfully saved file: {0}'.format(filenames[0]))
 
     def batchRun(self):
