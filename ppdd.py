@@ -189,7 +189,7 @@ class PPDD(object):
 
         #Unwrap
         phase = (phase+np.pi) % (2*np.pi) - np.pi
-        self.phase = cunwrap.unwrap(phase)[crop:-crop]
+        self.phase = cunwrap.unwrap(phase)[:, self.crop:-self.crop]
 
 
     def find_symmetry_axis(self):
