@@ -19,8 +19,8 @@ class PPDD(object):
     find_symmetry_axis
     abel
     """
-    def __init__(self, xmin = 0, xmax = 800, ymin = 0, ymax = 600, xband = 0.01, yband = 0.1, symin = 0, symax = 0, method = 'hansenlaw', \
-            wavelength=800, scale=1, n0=1, gfactor=1, peak_threshold=99.9, **kwargs):
+    def __init__(self, xmin = 0, xmax = 800, ymin = 0, ymax = 600, xband = 0.01, yband = 0.1, symin = 0, symax = 0, crop=50, method = 'hansenlaw', \
+            wavelength=800, scale=1, n0=1, gfactor=1, peak_threshold=99.99, **kwargs):
         self.guess = fittools.Guess(**kwargs);
         self.xmin = xmin        #crop the region [ymin:ymax, xmin:xmax] from raw input data
         self.xmax = xmax
@@ -30,6 +30,7 @@ class PPDD(object):
         self.yband = yband
         self.symin = symin      #limits the symmetry axis finding to [symin, symax]
         self.symax = symax
+        self.crop = crop        #crop the left and right edge of phase plot to avoid edge effect
         self.method = method
         self.wavelength = wavelength        #nm
         self.scale = scale                  #um per pixel
@@ -188,7 +189,8 @@ class PPDD(object):
 
         #Unwrap
         phase = (phase+np.pi) % (2*np.pi) - np.pi
-        self.phase = cunwrap.unwrap(phase)
+        self.phase = cunwrap.unwrap(phase)[crop:-crop]
+
 
     def find_symmetry_axis(self):
         if self.symin == self.symax:

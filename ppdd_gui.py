@@ -102,20 +102,25 @@ class PPDDWindow(QMainWindow):
         up.scale.setValidator(QDoubleValidator(0.0, 1.0e9, 1000))
         up.grid.addWidget(up.scale, 9, 0, 1, 2)
 
-        up.grid.addWidget(QLabel("Backdround n"), 10, 0)
+        up.grid.addWidget(QLabel("Crop"), 10, 0)
+        up.crop = QLineEdit()
+        up.crop.setValidator(QIntValidator())
+        up.grid.addWidget(up.crop, 10, 1)
+
+        up.grid.addWidget(QLabel("Backdround n"), 11, 0)
         up.n0 = QLineEdit()
         up.n0.setValidator(QDoubleValidator(0, 2, 6))
-        up.grid.addWidget(up.n0, 10, 1)
+        up.grid.addWidget(up.n0, 11, 1)
 
-        up.grid.addWidget(QLabel("G factor"), 11, 0)
+        up.grid.addWidget(QLabel("G factor"), 12, 0)
         up.gfactor = QLineEdit()
         up.gfactor.setValidator(QDoubleValidator(0, 1e9, 6))
-        up.grid.addWidget(up.gfactor, 11, 1)
+        up.grid.addWidget(up.gfactor, 12, 1)
 
-        up.grid.addWidget(QLabel("Peak threshold"), 12, 0)
+        up.grid.addWidget(QLabel("Peak threshold"), 13, 0)
         up.pthr = QLineEdit()
         up.pthr.setValidator(QDoubleValidator(0, 100, 6))
-        up.grid.addWidget(up.pthr, 12, 1)
+        up.grid.addWidget(up.pthr, 13, 1)
 
 
         #the left down part
@@ -205,6 +210,7 @@ class PPDDWindow(QMainWindow):
         layout.left.up.symax.setText(str(pypdd.symax))
         layout.left.up.wavelength.setText(str(pypdd.wavelength))
         layout.left.up.scale.setText(str(pypdd.scale))
+        layout.left.up.crop.setText(str(pypdd.crop))
         layout.left.up.n0.setText(str(pypdd.n0))
         layout.left.up.gfactor.setText(str(pypdd.gfactor))
         layout.left.up.pthr.setText(str(pypdd.peak_threshold))
@@ -367,6 +373,7 @@ class PPDDWindow(QMainWindow):
         pypdd.symax = int(self.layout.left.up.symax.text())
         pypdd.wavelength = float(self.layout.left.up.wavelength.text())
         pypdd.scale = float(self.layout.left.up.scale.text())
+        pypdd.crop = int(self.layout.left.up.crop.text())
         pypdd.n0 = float(self.layout.left.up.n0.text())
         pypdd.gfactor = float(self.layout.left.up.gfactor.text())
         pypdd.peak_threshold = float(self.layout.left.up.pthr.text())
@@ -378,6 +385,8 @@ class PPDDWindow(QMainWindow):
         pypdd.learning = self.layout.left.down.learning.isChecked()
         pypdd.manual = self.layout.left.down.manual.isChecked()
         pypdd.method = self.method_dict[str(self.layout.left.down.method.currentText())]
+        if (pypdd.xmax - pypdd.xmin) < (2*pypdd.crop + 1) :
+            raise RuntimeError("The X length of input region must be at least 2*crop+1 !")
 
 
     def runPPDD(self):
