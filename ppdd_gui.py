@@ -322,9 +322,11 @@ class PPDDWindow(QMainWindow):
         outputpath = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'output')
         os.makedirs(outputpath, exist_ok=True)
         outputfile = os.path.join(outputpath, os.path.basename(self.filename).rsplit('.', 1)[0]+'.txt')
-        outputfig = os.path.join(outputpath, os.path.basename(self.filename).rsplit('.', 1)[0]+'.png')
+        outputfigregion = os.path.join(outputpath, os.path.basename(self.filename).rsplit('.', 1)[0]+'-region.png')
+        outputfigdensity = os.path.join(outputpath, os.path.basename(self.filename).rsplit('.', 1)[0]+'-density.png')
         np.savetxt(outputfile, self.ppdd.AIM, fmt = '%1.6f', newline = os.linesep)
-        self.layout.right.density.fig.savefig(outputfig)
+        self.layout.right.raw.fig.savefig(outputfigregion)
+        self.layout.right.density.fig.savefig(outputfigdensity)
         self.statusBar().showMessage('Successfully saved file: {0}'.format(outputfile))
 
     def saveFileAs(self):
@@ -343,7 +345,8 @@ class PPDDWindow(QMainWindow):
 
             np.savetxt(filenames[0], self.ppdd.AIM, fmt = '%1.6f', newline = os.linesep)
             filename, file_extension = os.path.splitext(filenames[0])
-            self.layout.right.density.fig.savefig(filename+'.png')
+            self.layout.right.raw.fig.savefig(filename+'-region.png')
+            self.layout.right.density.fig.savefig(filename+'-density.png')
             self.statusBar().showMessage('Successfully saved file: {0}'.format(filenames[0]))
 
     def batchRun(self):
@@ -550,9 +553,11 @@ class batchRunWindow(QWidget):
                 pypdd.abel()
 
                 outputfile = os.path.join(self.outputpath, os.path.basename(f).rsplit('.', 1)[0]+'.txt')
-                outputfig = os.path.join(self.outputpath, os.path.basename(f).rsplit('.', 1)[0]+'.png')
+                outputfigregion = os.path.join(self.outputpath, os.path.basename(f).rsplit('.', 1)[0]+'-region.png')
+                outputfigdensity = os.path.join(self.outputpath, os.path.basename(f).rsplit('.', 1)[0]+'-density.png')
                 np.savetxt(outputfile, pypdd.AIM, fmt = '%1.6f', newline = os.linesep)
-                pypdd.layout.right.density.fig.savefig(outputfig)
+                pypdd.layout.right.raw.fig.savefig(outputfigregion)
+                pypdd.layout.right.density.fig.savefig(outputfigdensity)
                 self.status.showMessage('Successfully saved file: {0}'.format(outputfile))
                 self.success += 1
             except :
