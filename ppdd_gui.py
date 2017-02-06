@@ -527,6 +527,7 @@ class batchRunWindow(QWidget):
         self.grid.setRowStretch(1, 0)
         self.grid.setRowStretch(2, 0)
 
+        self.filenames = None
         self.status.showMessage('Ready.')
 
     def loadFilesDialog(self):
@@ -535,8 +536,8 @@ class batchRunWindow(QWidget):
             self.status.showMessage('Selected {0} file(s): {1}...'.format(len(filenames[0]), filenames[0][0]))
             self.filenames = filenames[0]
             outputpath = QFileDialog.getExistingDirectory(self, 'Output directory', '', QFileDialog.DontUseNativeDialog)
-            if outputpath[0]:
-                self.outputpath = outputpath[0]
+            if outputpath:
+                self.outputpath = outputpath
             else :
                 self.outputpath = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'output')
 
@@ -556,11 +557,26 @@ class batchRunWindow(QWidget):
                 outputfigregion = os.path.join(self.outputpath, os.path.basename(f).rsplit('.', 1)[0]+'-region.png')
                 outputfigdensity = os.path.join(self.outputpath, os.path.basename(f).rsplit('.', 1)[0]+'-density.png')
                 np.savetxt(outputfile, pypdd.AIM, fmt = '%1.6f', newline = os.linesep)
-                pypdd.layout.right.raw.fig.savefig(outputfigregion)
-                pypdd.layout.right.density.fig.savefig(outputfigdensity)
+
+                fig = Figure(figsize=(16, 8))
+                canvas = FigureCanvas(fig)
+                ax = fig.add_subplot(111)
+                pypdd.plot_raw(ax, region=(pypdd.xmin, pypdd.xmax, pypdd.ymin, pypdd.ymax))
+                fig.savefig(outputfigregion)
+
+                fig = Figure(figsize=(16, 8))
+                canvas = FigureCanvas(fig)
+                ax = fig.add_subplot(111)
+                cax, _ = colorbar.make_axes(ax, fraction = 0.05,  pad = 0.01, aspect = 20)
+                pypdd.plot_density(ax, cax)
+                fig.savefig(outputfigdensity)
+                
                 self.status.showMessage('Successfully saved file: {0}'.format(outputfile))
                 self.success += 1
-            except :
+            except Exception as e:
+                #error = QErrorMessage(self)
+                #error.showMessage(str(e))
+                #error.exec_() 
                 self.failed_files.append(f)
                 self.fail += 1
             yield
