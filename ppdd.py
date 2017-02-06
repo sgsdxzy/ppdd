@@ -37,6 +37,7 @@ class PPDD(object):
         self.gfactor = gfactor
         self.peak_threshold = peak_threshold
         self.learning = True
+        self.manual = False
         self.peak_fitted = False
 
         self.abel_methods = {
@@ -70,6 +71,9 @@ class PPDD(object):
             XYf2d = np.fft.fftn(self.xy2d)
             self.XYf2d_shifted = np.abs(np.fft.fftshift(XYf2d))                #shift frequency of (0,0) to the center
 
+            #if manual, skip find_peaks
+            if self.manual :
+                return
             #if learning, try hot start
             if self.learning :
                 try :

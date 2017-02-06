@@ -151,8 +151,11 @@ class PPDDWindow(QMainWindow):
 
         down.learning = QCheckBox("Learning")
         down.learning.stateChanged.connect(self.ppdd.reset)
-        down.grid.addWidget(down.learning, 4, 0, 1, 2)
+        down.grid.addWidget(down.learning, 4, 0)
 
+        down.manual = QCheckBox("Manual")
+        down.manual.stateChanged.connect(self.ppdd.reset)
+        down.grid.addWidget(down.manual, 4, 1)
 
         down.grid.addWidget(QLabel("method"), 5, 0, 1, 2)
         down.method = QComboBox()
@@ -210,6 +213,7 @@ class PPDDWindow(QMainWindow):
         layout.left.down.xband.setText('{0:.3f}'.format(pypdd.xband))
         layout.left.down.yband.setText('{0:.3f}'.format(pypdd.yband))
         layout.left.down.learning.setChecked(pypdd.learning)
+        layout.left.down.manual.setChecked(pypdd.manual)
 
         openFile = QAction(QIcon(iconPath('document-open')), 'Open', self)
         openFile.setShortcut('Ctrl+O')
@@ -367,6 +371,7 @@ class PPDDWindow(QMainWindow):
         pypdd.yband = float(self.layout.left.down.yband.text())
 
         pypdd.learning = self.layout.left.down.learning.isChecked()
+        pypdd.manual = self.layout.left.down.manual.isChecked()
         pypdd.method = self.method_dict[str(self.layout.left.down.method.currentText())]
 
 
