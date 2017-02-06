@@ -370,6 +370,8 @@ class PPDDWindow(QMainWindow):
         pypdd.xband = float(self.layout.left.down.xband.text())
         pypdd.yband = float(self.layout.left.down.yband.text())
 
+        pypdd.fx = float(self.layout.left.down.fx.text())
+        pypdd.fy = float(self.layout.left.down.fy.text())
         pypdd.learning = self.layout.left.down.learning.isChecked()
         pypdd.manual = self.layout.left.down.manual.isChecked()
         pypdd.method = self.method_dict[str(self.layout.left.down.method.currentText())]
