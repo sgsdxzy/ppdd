@@ -1,4 +1,5 @@
 import numpy as np
+import numexpr as ne
 from scipy.optimize import curve_fit, brentq
 from scipy.interpolate import interp1d
 
@@ -53,7 +54,7 @@ def gaussian(x, a, mu, sigma, c):
     out : 1D np.array
         the Gaussian profile
     """
-    return a * np.exp(-((x - mu) ** 2) / 2 / sigma ** 2) + c
+    return ne.evaluate('a * exp(-((x - mu) ** 2) / 2 / sigma ** 2) + c')
 
 def guss_gaussian(x):
     """
@@ -148,7 +149,7 @@ def find_symmetry_axis(phase, ymin, ymax):
     except (RuntimeError, ValueError) :
         #find_center_by_gaussian_fit failed, just pass to use next method
         pass
-    
+
     #find_center_by_convolution always succeeds
     center = find_center_by_convolution(phase, ymin, ymax)
     return center
@@ -160,11 +161,11 @@ def three_peaks_1d(x, a0, x0, sigma_x0, a1, x1, sigma_x1, offset):
     peak0 = gaussian(x, a0, x0, sigma_x0, 0)
     peak1 = gaussian(x, a1, x1, sigma_x1, 0)
     peakm1 = gaussian(x, a1, 2*x0-x1, sigma_x1, 0)
-    return peak0 + peak1 + peakm1 + offset
+    return ne.evaluate('peak0 + peak1 + peakm1 + offset')
 
 def find_peaks_1d(x, a0, x0, sigma_x0, a1, x1, sigma_x1, offset):
     length_x = x.shape[0]
-    popt,_ = curve_fit(three_peaks_1d, np.arange(length_x), x, p0 = (a0, x0, sigma_x0, a1, x1, sigma_x1, offset), 
+    popt,_ = curve_fit(three_peaks_1d, np.arange(length_x), x, p0 = (a0, x0, sigma_x0, a1, x1, sigma_x1, offset),
             bounds = ([-np.inf, 0, 0, -np.inf, length_x//2, 0, -np.inf], [np.inf, length_x, np.inf, np.inf, length_x, max(0.01*length_x, 5), np.inf]))
             #needs to limit sigma to avoid unsense results
     return popt
@@ -174,36 +175,37 @@ def three_peaks(xy_tuple, a0, x0, y0, sigma_x0, sigma_y0, a1, x1, y1, sigma_x1, 
     The fitting function of three peaks.
     """
     (x, y) = xy_tuple
-    peak0 = a0*np.exp((-(x-x0)**2)/(2*sigma_x0**2) + (-(y-y0)**2)/(2*sigma_y0**2))
-    peak1 = a1*np.exp((-(x-x1)**2)/(2*sigma_x1**2) + (-(y-y1)**2)/(2*sigma_y1**2))
-    peakm1 = a1*np.exp((-(x+x1-2*x0)**2)/(2*sigma_x1**2) + (-(y+y1-2*y0)**2)/(2*sigma_y1**2))
-    g = peak0 + peak1 + peakm1 + offset
-    return g.ravel()
-            
+    formula = ('a0*exp((-(x-x0)**2)/(2*sigma_x0**2) + (-(y-y0)**2)/(2*sigma_y0**2))'
+                '+ a1*exp((-(x-x1)**2)/(2*sigma_x1**2) + (-(y-y1)**2)/(2*sigma_y1**2))'
+                '+ a1*exp((-(x+x1-2*x0)**2)/(2*sigma_x1**2) + (-(y+y1-2*y0)**2)/(2*sigma_y1**2))'
+                '+ offset'
+                )
+    return ne.evaluate(formula).ravel()
+
 def find_peaks(XYf2d_shifted, guess):
     """
-    Fit the three peaks in the shifted 2d amplitude spectrum XYf2d_shifted. 
+    Fit the three peaks in the shifted 2d amplitude spectrum XYf2d_shifted.
     Return the phase shift of the secondary peak in x and y direction.
-    """    
+    """
     length_x = XYf2d_shifted.shape[1]
     length_y = XYf2d_shifted.shape[0]
     dXf = 1/length_x
     dYf = 1/length_y
-                 
+
     a0 = np.max(XYf2d_shifted)                                    #compose initial fit condition from guess
     x0 = length_x//2
     y0 = length_y//2
     a1 = guess.peak_ratio*a0
     x1 = x0 + guess.fx/dXf
     y1 = y0 + guess.fy/dYf
-    offset = guess.offset_ratio*a0 
-    initial_guess = (a0, x0, y0, guess.sigma_x0, guess.sigma_y0, a1, x1, y1, guess.sigma_x1, guess.sigma_y1, offset)     
-    x, y = np.meshgrid(np.arange(length_x), np.arange(length_y))       
-    popt,_ = curve_fit(three_peaks, (x, y), XYf2d_shifted.ravel(), p0=initial_guess, 
-            bounds = ([0, 0, 0, 0, 0, 0, length_x//2, 0, 0, 0, 0], 
-                [np.inf, length_x, length_y, np.inf, np.inf, np.inf, length_x, length_y, max(0.01*length_x, 5), max(0.01*length_y, 5), np.inf]))   
+    offset = guess.offset_ratio*a0
+    initial_guess = (a0, x0, y0, guess.sigma_x0, guess.sigma_y0, a1, x1, y1, guess.sigma_x1, guess.sigma_y1, offset)
+    x, y = np.meshgrid(np.arange(length_x), np.arange(length_y))
+    popt,_ = curve_fit(three_peaks, (x, y), XYf2d_shifted.ravel(), p0=initial_guess,
+            bounds = ([0, 0, 0, 0, 0, 0, length_x//2, 0, 0, 0, 0],
+                [np.inf, length_x, length_y, np.inf, np.inf, np.inf, length_x, length_y, max(0.01*length_x, 5), max(0.01*length_y, 5), np.inf]))
             #needs to limit sigma to avoid unsense results
-    
+
     fx = (popt[6]-popt[1])*dXf
     fy = (popt[7]-popt[2])*dYf
 
@@ -216,11 +218,11 @@ def find_peaks(XYf2d_shifted, guess):
     newguess.offset_ratio = popt[10]/popt[0]
     newguess.fx = fx
     newguess.fy = fy
-    
+
     #xband1 = 0.09#100*popt[3]*dXf/0.5                            #not used
     #xband2 = 0.16#(popt[6]-popt[1]+30*popt[8])*dXf/0.5
     #yband = 0.12#80*popt[9]*dYf/0.5
-    
+
     return fx, fy, newguess
 
 def half_image(IM, xcenter):

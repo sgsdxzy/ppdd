@@ -90,8 +90,9 @@ class PPDD(object):
         """
         Find the three peaks in the frequency spectrum. 
         """
-        perc = np.percentile(self.XYf2d_shifted, self.peak_threshold)
-        self.fx, self.fy, newguess = fittools.find_peaks(self.XYf2d_shifted.clip(min=perc), self.guess) 
+        #perc = np.percentile(self.XYf2d_shifted, self.peak_threshold)
+        #self.fx, self.fy, newguess = fittools.find_peaks(self.XYf2d_shifted.clip(min=perc), self.guess) 
+        self.fx, self.fy, newguess = fittools.find_peaks(self.XYf2d_shifted, self.guess) 
         self.guess = newguess
         #print(newguess.peak_ratio, newguess.sigma_x0, newguess.sigma_x1, newguess.sigma_y0, newguess.sigma_y1, newguess.offset_ratio)
         self.peak_fitted = True
